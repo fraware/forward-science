@@ -16,8 +16,8 @@ The present version is a **complete six-essay static build imported from an offi
 ## P0 — deployment
 
 - [ ] Resolve domain name suitability and ownership.
-- [ ] Create the dedicated GitHub repository, push source, configure repository CI.
-- [ ] Set `SITE_BASE_URL` in GitHub Actions repository variables.
+- [x] Create the dedicated GitHub repository, commit all six original essays, and verify GitHub CI and byte-for-byte file contents.
+- [x] Configure a validated default GitHub Pages base URL; `SITE_BASE_URL` is optional for a future custom domain.
 - [ ] Configure GitHub Pages Actions deployment, verify domain ownership and DNS, and enforce HTTPS.
 - [ ] Trigger the strict Pages deployment only after the six full-text gate has passed.
 - [ ] Visit production site, test chapter navigation and all critical source links.
@@ -38,4 +38,4 @@ The present version is a **complete six-essay static build imported from an offi
 - All seven pages were rendered in Chromium at 1440px, 768px, 390px and 320px (28 page-width checks), with no horizontal overflow.
 - A strict build with all six original bodies now passes; the no-content fixture still fails closed.
 - Full browser navigation could not be exercised in this environment because network and file navigation are administratively restricted; internal route targets were separately verified via automated tests.
-- Public GitHub repository, custom domain, live deployment and canonical search indexing are **not yet configured**.
+- The public GitHub repository and all 24 source files are committed and verified; the initial GitHub Actions CI run succeeded. The custom domain, live Pages deployment and production indexing remain outstanding.

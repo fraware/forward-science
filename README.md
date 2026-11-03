@@ -11,7 +11,7 @@ A typography-first, dependency-free static website for the six Forward Science p
 - The original essay prose is **never paraphrased by the importer**. Permitted HTML elements are retained and active content is removed; a text-equivalence check fails closed on changed prose. The strict build checks each imported body against its recorded SHA-256 hash.
 - The original export contained unrelated posts, subscriber information, and delivery analytics. None of those private files were copied into this project. Only six sanitized article bodies and their bounded provenance metadata are included.
 - The importer and strict deployment workflow refuse to pass partial or ambiguous imports as complete texts. The deployment workflow runs only by explicit manual dispatch; continuous integration runs on pushes and pull requests.
-- **Publication status:** The full-text static website is built and tested locally. It has not yet been committed to a dedicated repository or deployed to a verified custom domain. Paragraph-by-paragraph comparison with current public Substack copies is still a manual editorial acceptance task.
+- **Publication status:** The full-text static website is built and tested locally. It is committed to `fraware/forward-science` and its CI has passed; public Pages deployment and custom-domain configuration remain outstanding. Paragraph-by-paragraph comparison with current public Substack copies is still a manual editorial acceptance task.
 
 ## Project layout
 
@@ -64,15 +64,20 @@ The first command verifies all six texts in dry-run mode. The second writes sani
 
 ## Deployment
 
-1. Choose and legally assess a unique domain. `forwardscience.com` is occupied by a different organization.
-2. Create a repository for this project. Install the generated `site/` folder as the GitHub Pages artifact (the workflow does this).
-3. Confirm the six imported full-text HTML files and `content/import-provenance.json` are versioned, without uploading the original private export.
-4. In repository **Settings → Secrets and variables → Actions → Variables**, set `SITE_BASE_URL` to the exact HTTPS production URL, e.g. `https://USER.github.io/forward-science` or a verified custom domain.
-5. In repository **Settings → Pages**, choose **GitHub Actions** as the source. The workflow intentionally fails before deploy until all six imported texts and `SITE_BASE_URL` are present.
-6. For a custom domain, verify domain ownership and configure its DNS according to GitHub Pages guidance. Enable HTTPS. Change the repository variable to the final domain and redeploy.
-7. Audit the deployed pages, canonical tags, sitemap, social previews and search indexing. Once correct, link the original Substack publications to the new site.
+The complete source is maintained at https://github.com/fraware/forward-science. The GitHub Actions CI run for the initial full-source commit succeeded.
 
-See `RELEASE_CHECKLIST.md` for the release gate and content-level editorial checks.
+The canonical provisional address is `https://fraware.github.io/forward-science/`. It becomes live only once GitHub Pages is enabled and the publication workflow completes successfully.
+
+1. Open https://github.com/fraware/forward-science/settings/pages and choose **GitHub Actions** under **Build and deployment → Source**.
+2. Open https://github.com/fraware/forward-science/actions/workflows/pages.yml and select **Run workflow** on `main`.
+3. The workflow repeats the tests, checks all six author-export hashes, builds the canonical pages and deploys the `site/` artifact.
+4. Confirm the reported deployment URL and test each article, internal navigation, canonical metadata, `sitemap.xml`, `robots.txt`, and HTTPS.
+5. For a future custom domain, first verify ownership and DNS, configure the domain under GitHub Pages settings, then set the optional Actions repository variable `SITE_BASE_URL` to its full HTTPS origin and rerun the publication workflow. Review domain and trademark suitability before registering a new domain.
+6. Compare all six imported texts paragraph-by-paragraph against the current public Substack editions and record editorial acceptance before announcing the new publication.
+
+The workflow is deliberately manual to prevent an unreviewed article revision from being automatically published on every source commit. It does not need an Actions variable for the default GitHub Pages address.
+
+See `RELEASE_CHECKLIST.md` for the remaining editorial and distribution gates.
 
 ### Search engine policy
 
