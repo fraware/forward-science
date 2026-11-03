@@ -1,0 +1,43 @@
+name: Import verified Forward Science source
+on:
+  push:
+    paths:
+      - 'bootstrap/READY'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Reconstruct and verify source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f bootstrap/archive.sha256
+          cat bootstrap/part*.b64 | base64 --decode > /tmp/forward-science.tar.xz
+          sha256sum --check bootstrap/archive.sha256
+          tar -tJf /tmp/forward-science.tar.xz | while IFS= read -r path; do
+            case "/$path" in
+              *'/../'*|*'/./'*|/*'//'* ) echo "Unsafe archive path: $path" >&2; exit 1 ;;
+            esac
+          done
+          tar -xJf /tmp/forward-science.tar.xz
+          rm -rf bootstrap .github/workflows/bootstrap.yml
+      - name: Test publication
+        run: |
+          python -m pip install -r requirements-build.txt pytest
+          python -m pytest -q
+          python scripts/build.py --strict --base-url https://fraware.github.io/forward-science
+      - name: Commit verified source
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: publish verified six-essay Forward Science source'
+          git push origin HEAD:main
