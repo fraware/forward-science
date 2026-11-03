@@ -1,6 +1,6 @@
 # Publication release gate
 
-The present version is a **complete six-essay static build imported from an official author export**, locally validated against recorded source checksums. Deployment and final comparison with the live Substack versions remain outstanding.
+The six-essay publication is imported from the author export and verified against recorded SHA-256 source hashes. GitHub Pages completed its initial deployment job on November 3, 2026 (UTC). Independent live-site HTTP checks, final Substack edition comparison, and custom-domain selection remain open.
 
 ## P0 — content and editorial integrity
 
@@ -18,9 +18,9 @@ The present version is a **complete six-essay static build imported from an offi
 - [ ] Resolve domain name suitability and ownership.
 - [x] Create the dedicated GitHub repository, commit all six original essays, and verify GitHub CI and byte-for-byte file contents.
 - [x] Configure a validated default GitHub Pages base URL; `SITE_BASE_URL` is optional for a future custom domain.
-- [ ] Configure GitHub Pages Actions deployment, verify domain ownership and DNS, and enforce HTTPS.
-- [ ] Trigger the strict Pages deployment only after the six full-text gate has passed.
-- [ ] Visit production site, test chapter navigation and all critical source links.
+- [x] Configure GitHub Pages Actions deployment and complete a deployment job. Domain ownership, custom DNS, and direct HTTPS verification remain open.
+- [x] Complete the strict Pages deployment after the six full-text gate passed.
+- [ ] Independently inspect the deployed site, test chapter navigation and critical source links.
 - [ ] Check canonical URLs, sitemap, indexability and external preview metadata against final domain.
 
 ## P1 — distribution
@@ -38,4 +38,4 @@ The present version is a **complete six-essay static build imported from an offi
 - All seven pages were rendered in Chromium at 1440px, 768px, 390px and 320px (28 page-width checks), with no horizontal overflow.
 - A strict build with all six original bodies now passes; the no-content fixture still fails closed.
 - Full browser navigation could not be exercised in this environment because network and file navigation are administratively restricted; internal route targets were separately verified via automated tests.
-- The public GitHub repository and all 24 source files are committed and verified; the initial GitHub Actions CI run succeeded. The custom domain, live Pages deployment and production indexing remain outstanding.
+- The public GitHub repository and CI are established. The first Pages deployment job succeeded. Custom domain, independent live HTTP inspection and production indexing remain unverified.

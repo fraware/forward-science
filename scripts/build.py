@@ -21,6 +21,10 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoes
 
 ROOT = Path(__file__).resolve().parents[1]
 SLUG = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+SUBSTACK_SUBSCRIBE_FOOTER = (
+    '<p><a href="https://mateopetel.substack.com/subscribe?" '
+    'rel="noopener noreferrer"><span>Subscribe now</span></a></p>'
+)
 
 
 class TextOnly(HTMLParser):
@@ -65,6 +69,9 @@ def load_essays(root: Path) -> list[dict]:
         body_path = root / "content" / "essays" / f"{e['slug']}.html"
         e["complete"] = body_path.is_file()
         e["body"] = body_path.read_text(encoding="utf-8") if e["complete"] else ""
+        # Keep the imported source intact for checksum verification. The final
+        # Substack subscription widget is distribution boilerplate, not essay prose.
+        e["display_body"] = e["body"].strip().removesuffix(SUBSTACK_SUBSCRIBE_FOOTER).strip()
         if e["complete"]:
             if not e["body"].strip():
                 raise ValueError(f"Empty body file: {body_path}")

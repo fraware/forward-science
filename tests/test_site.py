@@ -92,3 +92,21 @@ def test_no_broken_local_routes(tmp_path: Path) -> None:
             local = (page.parent / url)
             resolved = local / "index.html" if local.is_dir() else local
             assert resolved.is_file(), f"Broken link in {page}: {link['href']}"
+
+
+def test_published_pages_preserve_source_and_omit_export_footer(tmp_path: Path) -> None:
+    """Keep the Substack export immutable while excluding its subscription widget."""
+    essays = module.build(ROOT, tmp_path / "published", "https://example.org/forward-science", strict=True)
+    for essay in essays:
+        assert essay["body"].strip().endswith(module.SUBSTACK_SUBSCRIBE_FOOTER)
+        assert "Subscribe now" not in essay["display_body"]
+        page = BeautifulSoup(
+            (tmp_path / "published" / essay["slug"] / "index.html").read_text(encoding="utf-8"),
+            "html.parser",
+        )
+        assert "Subscribe now" not in page.get_text(" ", strip=True)
+        canonical = page.select_one('link[rel="canonical"]')["href"]
+        assert page.select_one('meta[property="og:url"]')["content"] == canonical
+        assert page.select_one('meta[property="og:site_name"]')["content"] == "Forward Science"
+        if essay["number"] == "00":
+            assert page.title.string == "Forward Science — Mateo H. Petel"
