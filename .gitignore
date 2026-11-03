@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.venv/
+# The generated deployment output is built locally or in GitHub Actions.
+site/
+# Never commit a Substack data export containing subscriber information.
+*export*.zip

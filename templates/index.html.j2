@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f8f7f3">
+  <meta name="description" content="Forward Science: six essays by Mateo H. Petel on the institutions and scientific loops that turn AI into scientific progress.">
+  <meta name="author" content="Mateo H. Petel">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Forward Science — Mateo H. Petel">
+  <meta property="og:description" content="The institutions that turn new intelligence into scientific progress.">
+  {% if base_url %}<meta property="og:url" content="{{ base_url }}/"><link rel="canonical" href="{{ base_url }}/">{% endif %}
+  <meta name="twitter:card" content="summary">
+  <title>Forward Science — Mateo H. Petel</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell site-header__inner">
+    <a class="wordmark" href="./" aria-label="Forward Science homepage">FORWARD SCIENCE<span class="wordmark__period">.</span></a>
+    <nav class="header-nav" aria-label="Primary navigation"><a href="#essays">Essays</a><a href="#about">About</a></nav>
+  </div></header>
+  <main id="main">
+    <section class="hero shell" aria-labelledby="page-title">
+      <p class="eyebrow">AN ESSAY SERIES ON SCIENTIFIC DISCOVERY</p>
+      <h1 id="page-title">Forward <span>Science</span></h1>
+      <p class="hero__deck">The institutions that turn new intelligence into scientific progress.</p>
+      <p class="hero__byline">Mateo H. Petel <span aria-hidden="true">·</span> June 2026</p>
+    </section>
+    <div class="shell"><hr class="rule"></div>
+    <section class="introduction narrow" aria-label="Introduction">
+      <p class="introduction__lead">AI is expanding what researchers are able to attempt. Scientific progress depends on how institutions turn that capability into evidence, judgment, and the next experiment.</p>
+      <p>Forward Science develops an institutional framework for that transformation. Its central concerns are the scientific loop through which research advances, the people who strengthen it, the traditions that illuminate their role, and the structures needed to support their work.</p>
+      <p>The following essays develop these ideas as parts of a single argument. Each stands on its own and contributes to the larger framework.</p>
+    </section>
+    <section id="essays" class="essays shell" aria-labelledby="essays-title">
+      <div class="section-header"><h2 id="essays-title">The essays</h2><span>Six texts · June 2026</span></div>
+      <ol class="essay-list">
+      {% for e in essays %}
+        <li class="essay">
+          <div class="essay__number" aria-hidden="true">{{ e.number }}</div>
+          <div class="essay__content">
+            <p class="essay__concept">{{ e.concept }}</p>
+            <h3><a href="{{ e.slug }}/">{{ e.title }}</a></h3>
+            <p class="essay__subtitle">{{ e.subtitle }}</p>
+            <p class="essay__summary">{{ e.summary }}</p>
+            <p class="essay__metadata"><time datetime="{{ e.date }}">{{ e.date_long }}</time> <span aria-hidden="true">·</span> <a href="{{ e.slug }}/">{{ 'Read the essay' if e.complete else 'About this essay' }}</a>
+              {% if not e.complete %}<span aria-hidden="true">·</span> <a href="{{ e.original_url }}" target="_blank" rel="noopener noreferrer">Full text on Substack <span aria-hidden="true">↗</span></a>{% endif %}
+            </p>
+          </div>
+        </li>
+      {% endfor %}
+      </ol>
+    </section>
+    <section class="closing narrow" aria-labelledby="closing-title">
+      <p class="eyebrow">THE CENTRAL QUESTION</p>
+      <h2 id="closing-title">What does it take for a laboratory to learn more from the intelligence it already has?</h2>
+      <p>Forward Science places that question at the center of AI-enabled discovery.</p>
+    </section>
+    <section class="about shell" id="about" aria-labelledby="about-title"><div class="about__inner">
+      <h2 id="about-title">About the series</h2>
+      <p>Written by <strong>Mateo H. Petel</strong>. Originally published on <a href="https://mateopetel.substack.com/t/forward-science" target="_blank" rel="noopener noreferrer">Critical Systems <span aria-hidden="true">↗</span></a> in June 2026.</p>
+    </div></section>
+  </main>
+  <footer class="site-footer shell"><span>© 2026 Mateo H. Petel</span><a href="#main">Back to top ↑</a></footer>
+</body>
+</html>

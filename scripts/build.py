@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+"""Build the dependency-free, static Forward Science publication.
+
+Dependencies are needed only during building. The generated site consists of
+ordinary HTML, CSS, a favicon, and optional sitemap files.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import shutil
+from datetime import date
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib.parse import urlsplit
+
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+
+ROOT = Path(__file__).resolve().parents[1]
+SLUG = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
+
+
+class TextOnly(HTMLParser):
+    """Count meaningful text in imported sanitized HTML."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.text: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.text.append(data)
+
+
+def verify_base_url(raw: str | None) -> str | None:
+    """Accept only HTTPS origins, optionally with a GitHub Pages path prefix."""
+    if not raw:
+        return None
+    u = urlsplit(raw.rstrip("/"))
+    if u.scheme != "https" or not u.netloc or u.query or u.fragment or u.username or u.password:
+        raise ValueError("--base-url must be an HTTPS URL without query or fragment")
+    if ".." in u.path.split("/"):
+        raise ValueError("--base-url must not contain parent directory segments")
+    return raw.rstrip("/")
+
+
+def load_essays(root: Path) -> list[dict]:
+    """Validate the fixed corpus and load any verified imported bodies."""
+    manifest = json.loads((root / "content" / "essays.json").read_text(encoding="utf-8"))
+    if not isinstance(manifest, list) or len(manifest) != 6:
+        raise ValueError("Forward Science must have exactly six records")
+    slugs: set[str] = set()
+    for position, e in enumerate(manifest):
+        if e["number"] != f"{position:02d}" or not SLUG.fullmatch(e["slug"]):
+            raise ValueError(f"Invalid sequence/slug: {e}")
+        if e["slug"] in slugs:
+            raise ValueError(f"Duplicate slug: {e['slug']}")
+        slugs.add(e["slug"])
+        if not e["original_url"].startswith("https://mateopetel.substack.com/p/"):
+            raise ValueError(f"Unexpected source URL for {e['slug']}")
+        published = date.fromisoformat(e["date"])
+        e["date_long"] = f"{published:%B} {published.day}, {published.year}"
+        body_path = root / "content" / "essays" / f"{e['slug']}.html"
+        e["complete"] = body_path.is_file()
+        e["body"] = body_path.read_text(encoding="utf-8") if e["complete"] else ""
+        if e["complete"]:
+            if not e["body"].strip():
+                raise ValueError(f"Empty body file: {body_path}")
+            parser = TextOnly()
+            parser.feed(e["body"])
+            word_count = len(" ".join(parser.text).split())
+            if word_count < 300:
+                raise ValueError(f"Imported full essay suspiciously short: {e['slug']} ({word_count} words)")
+    return manifest
+
+
+
+def validate_provenance(root: Path, essays: list[dict]) -> None:
+    """Fail closed if validated imports have been altered since extraction.
+
+    This verifies internal consistency, not independent correspondence with
+    the latest Substack web edition; a human comparison remains necessary.
+    """
+    report = root / "content" / "import-provenance.json"
+    if not report.is_file():
+        raise ValueError("Missing import-provenance.json; run the official author-export importer")
+    records = json.loads(report.read_text(encoding="utf-8"))
+    if not isinstance(records, list) or len(records) != len(essays):
+        raise ValueError("Invalid import provenance record count")
+    if [r.get("slug") for r in records] != [e["slug"] for e in essays]:
+        raise ValueError("Import provenance order or identity differs from the essay manifest")
+    for e, record in zip(essays, records, strict=True):
+        content_hash = hashlib.sha256(e["body"].strip().encode("utf-8")).hexdigest()
+        if content_hash != record.get("rendered_sha256"):
+            raise ValueError(f"Imported article modified since verification: {e['slug']}")
+        if record.get("original_url") != e["original_url"]:
+            raise ValueError(f"Imported article has a mismatched original URL: {e['slug']}")
+        if not re.fullmatch(r"[0-9a-f]{64}", str(record.get("source_sha256", ""))):
+            raise ValueError(f"Missing raw source SHA-256: {e['slug']}")
+        if int(record.get("source_word_count", 0)) < 300:
+            raise ValueError(f"Invalid source word count: {e['slug']}")
+
+
+def build(root: Path, output: Path, base_url: str | None, strict: bool = False) -> list[dict]:
+    """Render the site; strict mode prevents deploying preview-only chapters."""
+    base_url = verify_base_url(base_url)
+    essays = load_essays(root)
+    incomplete = [e["slug"] for e in essays if not e["complete"]]
+    if strict and incomplete:
+        raise ValueError("Refusing to publish incomplete chapters: " + ", ".join(incomplete))
+    if strict:
+        validate_provenance(root, essays)
+    env = Environment(
+        loader=FileSystemLoader(str(root / "templates")),
+        autoescape=select_autoescape(["html", "j2"]),
+        undefined=StrictUndefined,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "index.html").write_text(
+        env.get_template("index.html.j2").render(essays=essays, base_url=base_url), encoding="utf-8"
+    )
+    for i, essay in enumerate(essays):
+        page = output / essay["slug"]
+        page.mkdir(parents=True, exist_ok=True)
+        html = env.get_template("essay.html.j2").render(
+            essay=essay,
+            previous=essays[i - 1] if i else None,
+            next=essays[i + 1] if i + 1 < len(essays) else None,
+            base_url=base_url,
+        )
+        (page / "index.html").write_text(html, encoding="utf-8")
+    for filename in ("styles.css", "favicon.svg"):
+        shutil.copy2(root / filename, output / filename)
+    (output / ".nojekyll").touch()
+    if base_url and not incomplete:
+        from xml.sax.saxutils import escape
+        urls = [base_url + "/"] + [base_url + "/" + e["slug"] + "/" for e in essays]
+        xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        xml += "".join(f"  <url><loc>{escape(u)}</loc></url>\n" for u in urls)
+        xml += "</urlset>\n"
+        (output / "sitemap.xml").write_text(xml, encoding="utf-8")
+        (output / "robots.txt").write_text("User-agent: *\nAllow: /\nSitemap: " + base_url + "/sitemap.xml\n", encoding="utf-8")
+    else:
+        for filename in ("sitemap.xml", "robots.txt"):
+            (output / filename).unlink(missing_ok=True)
+    return essays
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", type=Path, default=ROOT / "site", help="Generated site directory")
+    parser.add_argument("--base-url", help="Canonical website base URL, including optional GitHub Pages prefix")
+    parser.add_argument("--strict", action="store_true", help="Fail unless all six full texts have been imported")
+    args = parser.parse_args()
+    try:
+        essays = build(ROOT, args.out, args.base_url, args.strict)
+    except (ValueError, OSError) as exc:
+        parser.exit(2, f"Build failed: {exc}\n")
+    count = sum(e["complete"] for e in essays)
+    print(f"Generated {len(essays) + 1} pages in {args.out}; complete chapters: {count}/6")
+    if count < 6:
+        print("Reader placeholders are marked noindex. Import the official author export before public release.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
