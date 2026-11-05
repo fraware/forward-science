@@ -1,0 +1,59 @@
+name: Candidate narration — Kokoro (unreviewed)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/narration-candidate.yml
+permissions:
+  contents: read
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install candidate voice dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng ffmpeg
+          python -m pip install --disable-pip-version-check kokoro-onnx==0.6.1 soundfile numpy
+          python -m pip install -r requirements-build.txt
+      - name: Retrieve official model files
+        run: |
+          mkdir -p "$RUNNER_TEMP/kokoro"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" \
+            https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.onnx
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
+            https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin
+          sha256sum "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
+            > "$RUNNER_TEMP/kokoro/model-provenance.sha256"
+      - name: Render a short unreviewed sample
+        run: |
+          python scripts/generate_narration_candidate.py \
+            --root . --model "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" \
+            --voices "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
+            --voice af_heart --output narration-candidate
+          cp "$RUNNER_TEMP/kokoro/model-provenance.sha256" narration-candidate/
+          ffprobe -v error -show_entries format=duration:stream=codec_name -of json \
+            narration-candidate/UNREVIEWED-forward-science-preview.mp3
+          test ! -e content/audio.json.bak
+      - name: Upload review-only candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: UNREVIEWED-Kokoro-Forward-Science
+          path: narration-candidate/UNREVIEWED-forward-science-preview.mp3
+          retention-days: 7
+          if-no-files-found: error
+      - name: Upload candidate provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: UNREVIEWED-Kokoro-Provenance
+          path: |
+            narration-candidate/CANDIDATE-NOT-FOR-PUBLICATION.json
+            narration-candidate/model-provenance.sha256
+          retention-days: 7
+          if-no-files-found: error
