@@ -209,3 +209,13 @@ identifies an approved edition as **synthetic** or **human** narration, with its
 actual voice name and provider, and presents the essay as its written transcript.
 This disclosure applies only if a recording passes the separate strict-release
 gate; the public audio manifest currently remains empty.
+
+
+### Public MP3 delivery integrity
+
+For any future approved MP3 release, the post-deployment GitHub Pages audit
+downloads the actual public narration bytes and compares SHA-256 with the
+approved build artifact. Large non-audio files retain lighter HEAD checks.
+This catches audio substitutions that preserve file length; it adds bandwidth
+only to a publication carrying approved recordings. Public MP3 playback is
+still absent until recorded-text and listening review pass.

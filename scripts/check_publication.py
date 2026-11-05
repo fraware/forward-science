@@ -75,7 +75,10 @@ def check_once(
             continue
         route = published_path(relative)
         url = origin + "/" + route
-        method = "HEAD" if asset.stat().st_size > LARGE_FILE_BYTES else "GET"
+        # Published narration must match the approved media checksum byte-for-byte.
+        # A HEAD/Content-Length check cannot detect same-length audio substitution.
+        method = ("GET" if asset.suffix.lower() == ".mp3"
+                  or asset.stat().st_size <= LARGE_FILE_BYTES else "HEAD")
         try:
             status, content, headers = transport(url, method)
             if status != 200:
