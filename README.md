@@ -288,3 +288,31 @@ unrecognized private files, symlink safety, and protected source paths.
 The separate `.github/workflows/browser-regression.yml` job exercises the complete, strictly built publication in real Chromium over a loopback HTTP server. It checks all seven pages at 320, 390, 768 and 1440 pixels, paragraph deep links, actual previous/next navigation, saved-reading recovery, local-only history clearing and no-JavaScript access. The browser-speech service is deliberately mocked for interaction tests: this establishes DOM behavior, not audio quality, native mobile speech behavior or screen-reader acceptance. Run locally with `python -m pip install pytest playwright==1.56.0`, `python -m playwright install chromium` and `python -m pytest -q browser/verify_reader.py`. No browser-test dependency is delivered to website visitors.
 
 The reader no longer overwrites a previous paragraph bookmark on initial render in a tall viewport. It updates the saved location only following deliberate scrolling, a valid paragraph deep link, a restored scrolled page or explicit Resume.
+
+
+### Validate a self-contained private listening handoff
+
+An offline review workspace alone is insufficient input to
+`scripts/stage_reviewed_audio.py`. A complete private handoff also includes
+`UNREVIEWED-MANIFEST.json`, the six original `manuscripts/*.txt`,
+`ASR_AUDIT_UNREVIEWED.json`, all six matching MP3s, a complete SHA-256
+inventory, and an **unsigned** attestation template. The package remains
+private and must never be placed in the generated Pages directory.
+
+Validate it against the authoritative repository before beginning a review:
+
+```bash
+python scripts/verify_review_handoff.py \
+  /private/Forward_Science_Complete_Private_Narration_Review_Handoff.zip \
+  --source .
+```
+
+This independently verifies every included file checksum, the exact source
+narration manuscript for each essay, all source-hashed speech segments,
+the separate ASR recording-manifest binding, and the HTML player's MP3
+identities. The unreviewed manifest and reviewer template must explicitly
+deny publication approval. Optional short clips accelerate discrepancy
+triage; six complete recordings still need authentic full-length listening.
+This packaging check does not decode the audio or certify what was spoken.
+The later private stager runs the full codec/acoustic and reviewer-evidence
+acceptance gate.
