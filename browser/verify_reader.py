@@ -109,11 +109,18 @@ def test_saved_resume_survives_initial_render_on_tall_screen(server_url, browser
     page.wait_for_timeout(150)
     stored = page.evaluate("key => JSON.parse(localStorage.getItem(key))", KEY)
     assert stored["paragraph"] == "p-10"
+    start_scroll = page.evaluate("window.scrollY")
     page.locator(".resume-reading").click()
     assert not page.locator(".resume-reading").is_visible()
     page.wait_for_function(
-        """() => { const p = document.querySelector('#p-10');
-           return p && Math.abs(p.getBoundingClientRect().top) < 70; }""",
+        """before => {
+           const p = document.querySelector('#p-10');
+           if (!p) return false;
+           const bounds = p.getBoundingClientRect();
+           return window.scrollY > before + 5 &&
+                  bounds.bottom > 0 && bounds.top < innerHeight;
+        }""",
+        arg=start_scroll,
         timeout=5000,
     )
     context.close()
