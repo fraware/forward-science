@@ -214,3 +214,44 @@ def test_browser_narration_is_progressively_enhanced(tmp_path: Path) -> None:
         assert page.select_one('[data-speech-play]') is not None
         assert page.select_one('[data-speech-status][role="status"]') is not None
         assert page.select_one('article[aria-label="Full essay"]') is not None
+
+
+def test_strict_build_retracts_removed_audio(tmp_path: Path) -> None:
+    """A revoked recording is removed from a reused site's published assets."""
+    output = tmp_path / "site"
+    stale = output / "media" / "scientific-loop.mp3"
+    stale.parent.mkdir(parents=True)
+    stale.write_bytes(b"old unreviewed recording")
+    module.build(ROOT, output, "https://example.org/forward-science", strict=True)
+    assert not stale.exists()
+    assert not (output / "media").exists()
+
+
+def test_strict_build_rejects_unknown_assets(tmp_path: Path) -> None:
+    """Private files accidentally placed under site/ fail closed before upload."""
+    output = tmp_path / "site"
+    output.mkdir()
+    (output / "PRIVATE-notes.json").write_text('{"subscriber": "private"}')
+    with pytest.raises(ValueError, match="Unexpected file in public publication"):
+        module.build(ROOT, output, "https://example.org/forward-science", strict=True)
+
+
+def test_build_refuses_overlapping_source_paths(tmp_path: Path) -> None:
+    """A mistaken output argument must never mutate authoritative sources."""
+    with pytest.raises(ValueError, match="overlaps publication sources"):
+        module.build(ROOT, ROOT / "content", None, strict=False)
+    with pytest.raises(ValueError, match="overlaps publication sources"):
+        module.build(ROOT, ROOT, None, strict=False)
+
+
+def test_build_refuses_symlinked_media_output(tmp_path: Path) -> None:
+    """Build cleanup must never follow a preexisting publication media symlink."""
+    output = tmp_path / "site"
+    external = tmp_path / "external"
+    external.mkdir()
+    (external / "keep.mp3").write_bytes(b"keep")
+    output.mkdir()
+    (output / "media").symlink_to(external, target_is_directory=True)
+    with pytest.raises(ValueError, match="media path is a symlink"):
+        module.build(ROOT, output, None, strict=True)
+    assert (external / "keep.mp3").read_bytes() == b"keep"

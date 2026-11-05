@@ -269,3 +269,15 @@ peak and long-silence thresholds. It produces a private `media/` directory,
 `audio.json` for later copying into `content/`, and a provenance receipt.
 It **does not modify the Git repository or public site**. A reviewed Git
 commit and passing production deployment remain mandatory for publication.
+
+
+### Public-artifact hygiene
+
+Every strict build now rejects unexpected output files, symbolic links, and
+output paths overlapping authoritative source directories. Reusing a local
+site directory automatically retracts stale `site/media/` content, including
+previously approved MP3 files subsequently withdrawn from the manifest.
+This matters for local and custom-hosting builds even though GitHub Actions
+usually checks out into a clean runner. Public download editions remain
+excluded. CI includes regression tests covering stale-media withdrawal,
+unrecognized private files, symlink safety, and protected source paths.
