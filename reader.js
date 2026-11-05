@@ -51,7 +51,8 @@
       readingStarted = true;
       document.getElementById(prior.paragraph)?.scrollIntoView({ behavior: "smooth", block: "start" });
       resume.hidden = true;
-      schedule();
+      // The ensuing scroll events track the new position. An eager update
+      // here would record the heading viewport before scrolling completes.
     });
   }
 
