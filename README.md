@@ -139,3 +139,51 @@ If the browser stops speech unexpectedly, the Listen controls enter an explicit 
 ### Linked-section listening
 
 Direct chapter links with a valid paragraph fragment (for example, `#p-03`) select the corresponding starting paragraph for browser narration, taking precedence over the older saved listening position. Switching sections using an in-essay anchor while audio is playing pauses narration, preserves the new position, and waits for an explicit Resume action. Invalid fragments are ignored. No navigation event triggers autoplay.
+
+
+## Definitive MP3 release policy
+
+Browser speech synthesis remains available as a progressive enhancement.
+Professionally narrated MP3 editions are published only after the author
+or another accountable reviewer has listened to each full recording, compared
+it with the source manuscript, checked scientific pronunciations and sound
+quality, and confirmed distribution rights.
+
+A record under \`content/audio.json\` must contain:
+
+\`\`\`json
+{
+  "scientific-loop": {
+    "path": "media/scientific-loop.mp3",
+    "sha256": "<sha256 of final MP3 bytes>",
+    "manuscript_sha256": "<sha256 from narration-work/manifest.json>",
+    "voice": {
+      "type": "human",
+      "name": "<actual voice or narrator>",
+      "provider": "<actual provider>",
+      "distribution_rights_basis": "<documented rights>"
+    },
+    "review": {
+      "reviewer": "<actual reviewer>",
+      "reviewed_on": "YYYY-MM-DD",
+      "listened_in_full": true,
+      "spoken_text_checked": true,
+      "pronunciation_checked": true,
+      "audio_artifacts_checked": true,
+      "distribution_rights_confirmed": true
+    }
+  }
+}
+\`\`\`
+
+Use the real voice type (\`human\` or \`synthetic\`) and record the actual
+provider and permission to redistribute the recordings. Never invent
+attestations. Run \`python scripts/verify_audio.py\`; a strict site build
+invokes the same verifier whenever a recording is listed. It checks SHA-256,
+the source narration manuscript, reviewer fields, one MP3 stream, plausible
+duration and audio format, and full-file FFmpeg decoding. FFmpeg and FFprobe
+must be installed for actual MP3 publication. These automated checks do
+not prove audio-to-text correspondence or artistic quality; that judgment
+remains the stated human sign-off.
+
+The manifest is currently empty. No MP3 recordings have passed the gate.
