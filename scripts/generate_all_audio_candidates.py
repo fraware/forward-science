@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,22 +32,96 @@ def segments_for(text: str, max_chars: int = 850) -> list[tuple[str, bool]]:
     return result
 
 
-def encode_audio(wav: Path, mp3: Path) -> None:
-    """Produce a browser-compatible draft MP3, then fully decode for integrity."""
+def timeline_for_lengths(
+    segments: list[tuple[str, bool]],
+    frame_lengths: list[int],
+    sample_rate: int,
+) -> tuple[list[dict], int]:
+    """Map every unchanged source phrase to its actual synthesized time range.
+
+    Times refer to pre-encoding PCM. MP3 encoder delay introduces minor offsets;
+    these are approximate review cues, not word-aligned timestamps.
+    """
+    if len(segments) != len(frame_lengths) or not segments or sample_rate <= 0:
+        raise ValueError("Audio segment lengths and speech phrases must agree")
+    timeline = []
+    cursor = 0
+    paragraph = 1
+    for index, ((text, paragraph_end), length) in enumerate(zip(segments, frame_lengths, strict=True)):
+        if length <= 0:
+            raise ValueError("Speech segments must contain positive audio frames")
+        start = cursor
+        cursor += length
+        pause_seconds = 0.0 if index == len(segments) - 1 else (0.42 if paragraph_end else 0.18)
+        timeline.append({
+            "segment": index + 1,
+            "paragraph": paragraph,
+            "start_seconds": round(start / sample_rate, 3),
+            "end_seconds": round(cursor / sample_rate, 3),
+            "pause_after_seconds": pause_seconds,
+            "source_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            "source_excerpt": text[:100],
+        })
+        if paragraph_end:
+            paragraph += 1
+        cursor += int(sample_rate * pause_seconds)
+    return timeline, cursor
+
+
+def encode_audio(wav: Path, mp3: Path, sample_rate: int) -> None:
+    """Normalize source WAV once to -18 LUFS, encode MP3, then fully decode."""
     completed = subprocess.run(
         ["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y",
-         "-i", str(wav), "-codec:a", "libmp3lame", "-b:a", "96k", str(mp3)],
-        capture_output=True, text=True, timeout=180,
+         "-i", str(wav),
+         "-af", "loudnorm=I=-18:TP=-1.5:LRA=9",
+         "-ar", str(sample_rate), "-codec:a", "libmp3lame", "-b:a", "96k", str(mp3)],
+        capture_output=True, text=True, timeout=600,
     )
     if completed.returncode:
-        raise RuntimeError(f"Encoding failed for {mp3.name}: {completed.stderr[-300:]}")
+        raise RuntimeError(f"Mastering failed for {mp3.name}: {completed.stderr[-300:]}")
     checked = subprocess.run(
         ["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-xerror",
-         "-i", str(mp3), "-f", "null", "-"],
+         "-i", str(mp3), "-map", "0:a:0", "-f", "null", "-"],
         capture_output=True, text=True, timeout=300,
     )
     if checked.returncode:
         raise RuntimeError(f"MP3 decoding failed for {mp3.name}: {checked.stderr[-300:]}")
+
+
+def measure_audio(mp3: Path) -> dict:
+    """Independently verify draft loudness, true peak and excessive silence."""
+    output = subprocess.run(
+        ["ffmpeg", "-nostdin", "-hide_banner", "-i", str(mp3),
+         "-af", "silencedetect=noise=-38dB:d=2.5,"
+                "loudnorm=I=-18:TP=-1.5:LRA=9:print_format=json",
+         "-f", "null", "-"],
+        capture_output=True, text=True, timeout=600,
+    )
+    if output.returncode:
+        raise ValueError(f"Audio measurement failed: {mp3.name}")
+    match = re.search(r'\{\s*"input_i"[\s\S]*?\}', output.stderr)
+    if match is None:
+        raise ValueError(f"No integrated loudness measurement: {mp3.name}")
+    data = json.loads(match.group())
+    lufs = float(data["input_i"])
+    true_peak = float(data["input_tp"])
+    if not -20 <= lufs <= -16:
+        raise ValueError(f"Integrated loudness outside review range: {mp3.name}: {lufs} LUFS")
+    if true_peak > -1.0:
+        raise ValueError(f"True peak exceeds -1 dBTP: {mp3.name}: {true_peak}")
+    long_pauses = [
+        float(value) for value in re.findall(r"silence_duration:\s*([0-9.]+)", output.stderr)
+        if float(value) >= 2.5
+    ]
+    if long_pauses:
+        raise ValueError(f"Excessive silence in {mp3.name}: {long_pauses[:4]}")
+    return {
+        "integrated_lufs": lufs,
+        "true_peak_dbtp": true_peak,
+        "loudness_range_lu": float(data["input_lra"]),
+        "silences_over_2_5_seconds": 0,
+        "mastering_target": "-18 LUFS, true peak <= -1.5 dBTP",
+    }
 
 
 def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, limit: int) -> dict:
@@ -66,7 +141,7 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, li
         source = (output / "manuscripts" / f"{slug}.txt").read_text(encoding="utf-8")
         assert hashlib.sha256(source.encode()).hexdigest() == essay["spoken_body_sha256"]
         segments = segments_for(source, limit)
-        buffer = []
+        audio_segments = []
         sample_rate = None
         for index, (text, paragraph_end) in enumerate(segments):
             samples, rate = kokoro.create(text, voice=voice, speed=1.0, lang="en-us")
@@ -77,21 +152,32 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, li
                 sample_rate = rate
             if rate != sample_rate:
                 raise ValueError(f"Sample rate changed during {slug}")
-            buffer.append(samples)
-            if index + 1 < len(segments):
-                seconds = 0.42 if paragraph_end else 0.18
-                buffer.append(np.zeros(int(rate * seconds), dtype=np.float32))
+            audio_segments.append(samples)
+        timeline, expected_frames = timeline_for_lengths(
+            segments, [part.size for part in audio_segments], sample_rate
+        )
+        buffer = []
+        for part, item in zip(audio_segments, timeline, strict=True):
+            buffer.append(part)
+            pause = item["pause_after_seconds"]
+            if pause:
+                buffer.append(np.zeros(int(sample_rate * pause), dtype=np.float32))
         waveform = np.concatenate(buffer)
+        if len(waveform) != expected_frames:
+            raise AssertionError(f"Timeline length disagrees with audio: {slug}")
         wav = output / f"UNREVIEWED-{slug}.wav"
         mp3 = output / f"UNREVIEWED-{slug}.mp3"
         sf.write(wav, waveform, sample_rate, subtype="PCM_16")
-        encode_audio(wav, mp3)
+        encode_audio(wav, mp3, sample_rate)
         wav.unlink()
+        measurements = measure_audio(mp3)
         record = {
             "slug": slug, "title": essay["title"],
             "manuscript_sha256": essay["spoken_body_sha256"],
             "word_count": essay["word_count"],
             "chunks": len(segments),
+            "segment_timeline": timeline,
+            "signal_quality": measurements,
             "duration_seconds": round(len(waveform) / sample_rate, 2),
             "sha256": hashlib.sha256(mp3.read_bytes()).hexdigest(),
             "filename": mp3.name,
@@ -110,6 +196,7 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, li
         "voice": voice,
         "voice_provider": "Kokoro-82M / kokoro-onnx",
         "model": "Kokoro 82M v1.0 model-files-v1.1 (Apache-2.0)",
+        "mastering": "FFmpeg single-pass from original PCM: -18 LUFS, -1.5 dBTP, 24kHz mono, 96kbps MP3",
         "inference": "onnxruntime local CPU",
         "recordings": results,
         "publication_approved": False,

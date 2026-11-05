@@ -41,6 +41,18 @@ jobs:
           cp "$RUNNER_TEMP/kokoro/model-provenance.sha256" narration-drafts/
           test "$(find narration-drafts -maxdepth 1 -name 'UNREVIEWED-*.mp3' | wc -l)" -eq 6
           test "$(find narration-drafts -maxdepth 1 -name 'UNREVIEWED-*.wav' | wc -l)" -eq 0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path("narration-drafts/UNREVIEWED-MANIFEST.json").read_text())
+          assert len(report["recordings"]) == 6
+          assert not report["publication_approved"]
+          for item in report["recordings"]:
+              assert item["segment_timeline"]
+              assert -20 <= item["signal_quality"]["integrated_lufs"] <= -16
+              assert item["signal_quality"]["true_peak_dbtp"] <= -1
+          print("Six unreviewed mastered candidates meet signal-level QA gates")
+          PY
       - name: Upload six unreviewed drafts for listening QA
         uses: actions/upload-artifact@v4
         with:
