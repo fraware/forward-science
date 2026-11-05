@@ -12,7 +12,6 @@ import json
 import subprocess
 from pathlib import Path
 
-from prepare_narration import compile_narration
 
 
 def text_chunks(text: str, limit: int = 330) -> list[str]:
@@ -43,6 +42,7 @@ def text_chunks(text: str, limit: int = 330) -> list[str]:
 
 def generate(root: Path, model: Path, voices: Path, output: Path, voice: str) -> dict:
     """Render a two-paragraph preview; publishable editions use a separate gate."""
+    from prepare_narration import compile_narration
     import numpy as np
     import soundfile as sf
     from kokoro_onnx import Kokoro
