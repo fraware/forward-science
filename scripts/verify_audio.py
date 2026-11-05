@@ -73,7 +73,34 @@ def decode(file: Path) -> None:
         raise ValueError(f"MP3 decoding failed for {file.name}: {result.stderr[-200:]}")
 
 
-def validate(root: Path, *, inspect=probe, fully_decode=decode) -> list[dict]:
+def measure_loudness(file: Path) -> dict:
+    """Measure encoded loudness, true peak, and unusually long silences.
+
+    An acoustic measurement is independent of the recording's checksum and
+    editorial attestation; it does not establish the accuracy of spoken text.
+    """
+    result = subprocess.run(
+        ["ffmpeg", "-nostdin", "-hide_banner", "-i", str(file),
+         "-af", "silencedetect=noise=-38dB:d=4,"
+                "loudnorm=I=-18:TP=-1.5:LRA=9:print_format=json",
+         "-f", "null", "-"],
+        capture_output=True, text=True, timeout=600,
+    )
+    if result.returncode:
+        raise ValueError(f"Audio measurement failed: {file.name}")
+    match = re.search(r'\{\s*"input_i"[\s\S]*?\}', result.stderr)
+    if not match:
+        raise ValueError(f"Missing EBU R128 loudness analysis: {file.name}")
+    parsed = json.loads(match.group())
+    gaps = [float(x) for x in re.findall(r"silence_duration:\s*([0-9.]+)", result.stderr)]
+    return {
+        "integrated_lufs": float(parsed["input_i"]),
+        "true_peak_dbtp": float(parsed["input_tp"]),
+        "silence_over_4_seconds": any(x >= 4 for x in gaps),
+    }
+
+
+def validate(root: Path, *, inspect=probe, fully_decode=decode, acoustic=measure_loudness) -> list[dict]:
     """Reject every unreviewed, source-mismatched, or technically invalid audio file."""
     manifest = json.loads((root / "content/audio.json").read_text())
     essays = json.loads((root / "content/essays.json").read_text())
@@ -130,7 +157,18 @@ def validate(root: Path, *, inspect=probe, fully_decode=decode) -> list[dict]:
         if duration <= 0 or not 70 <= 60 * words / duration <= 260:
             raise ValueError(f"Implausible narration length: {slug}")
         fully_decode(file)
-        accepted.append({"slug": slug, "duration_seconds": round(duration, 1)})
+        metrics = acoustic(file)
+        if not -21 <= metrics["integrated_lufs"] <= -15:
+            raise ValueError(f"Approved recording outside -21..-15 LUFS: {slug}")
+        if metrics["true_peak_dbtp"] > -1.0:
+            raise ValueError(f"Approved recording peak exceeds -1 dBTP: {slug}")
+        if metrics["silence_over_4_seconds"]:
+            raise ValueError(f"Unexpected silence over four seconds: {slug}")
+        accepted.append({
+            "slug": slug, "duration_seconds": round(duration, 1),
+            "integrated_lufs": metrics["integrated_lufs"],
+            "true_peak_dbtp": metrics["true_peak_dbtp"],
+        })
     return accepted
 
 

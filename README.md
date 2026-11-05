@@ -192,3 +192,8 @@ The manifest is currently empty. No MP3 recordings have passed the gate.
 ### Narration mastering and review cues
 
 Full-length synthetic draft production now applies FFmpeg loudness normalization directly from each source PCM WAV to approximately **-18 LUFS** with a **-1.5 dBTP** target, 24 kHz mono and 96 kbps MP3. After encoding, a separate decoding/measurement step rejects out-of-range loudness, excessive true peak and silent gaps longer than 2.5 seconds. The source-faithful segment manifest includes approximate per-phrase start/end times, paragraph numbers, and source-text hashes. These cues help the human reviewer locate difficult scientific terms and transitions; MP3 encoder padding means they are not sample-exact alignments. Silence, peak and loudness checks do not verify spoken correctness. The editorially reviewed MP3 release gate remains unchanged.
+
+
+### Independent master-quality check for definitive recordings
+
+The strict public MP3 gate independently measures each approved file with FFmpeg using EBU R128 loudness analysis. It rejects recordings outside -21 to -15 LUFS, true peak above -1 dBTP, or unexplained silent gaps of four seconds or longer. Tests exercise real MP3 decoding and real loudness measurement. These are technical consistency checks alongside, not substitutes for, complete human listening and text fidelity review.
