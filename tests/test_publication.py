@@ -79,3 +79,28 @@ def test_large_files_use_head_only(tmp_path: Path, monkeypatch):
         return delegate(url, method)
     assert module.check_once(site, "https://example.org/forward-science", transport) == []
     assert any(url.endswith("/reader.js") and method == "HEAD" for url, method in seen)
+
+
+def test_full_mp3_download_detects_same_length_tampering(tmp_path: Path, monkeypatch):
+    """A valid HTTP HEAD size never substitutes for the actual MP3 hash."""
+    site = fixture_site(tmp_path)
+    media = site / "media"
+    media.mkdir()
+    (media / "scientific-loop.mp3").write_bytes(b"approved-media-bytes")
+    monkeypatch.setattr(module, "LARGE_FILE_BYTES", 4)
+    requested = []
+    underlying = mock_transport(site)
+
+    def transport(url, method):
+        requested.append((url, method))
+        status, data, headers = underlying(url, method)
+        if url.endswith("/media/scientific-loop.mp3") and method == "GET":
+            data = b"X" + data[1:]  # Same byte length, different SHA-256.
+        return status, data, headers
+
+    errors = module.check_once(site, "https://example.org/forward-science", transport)
+    assert any("media/scientific-loop.mp3: delivered bytes differ" in e for e in errors)
+    assert any(url.endswith("scientific-loop.mp3") and method == "GET"
+               for url, method in requested)
+    assert any(url.endswith("reader.js") and method == "HEAD"
+               for url, method in requested)
