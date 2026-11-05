@@ -129,3 +129,8 @@ The site presents an optional **Listen** interface in browsers that support Web 
 Playback starts only on an explicit Play action. Readers choose speed and browser voice, pause and resume at short phrase boundaries, or move through original essay paragraphs. Position is stored optionally in browser-local storage; failures to access storage leave listening functional. No website-operated audio service or tracking is involved. Unsupported browsers retain the original reading experience with the control hidden. A reviewed MP3 recording, once available and SHA-256 validated, supersedes browser narration for its essay.
 
 Automated checks use mock speech engines; real voice quality and background playback on phones remain external acceptance criteria.
+
+
+### Browser narration interruption handling
+
+If the browser stops speech unexpectedly, the Listen controls enter an explicit paused state and retain the last short-phrase boundary. The reader can resume without encountering a disabled Play button. A `pagehide` event also pauses active speech to keep back/forward-cache restoration consistent. User-triggered Stop clears the saved position, while interrupted/paused playback retains it. These transitions are covered by simulated Web Speech regression tests; physical-device narration quality and background behavior still require external validation.

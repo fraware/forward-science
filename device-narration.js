@@ -154,10 +154,16 @@
     };
     utterance.onerror = (event) => {
       if (ticket !== generation || activeUtterance !== utterance) return;
-      if (["canceled", "interrupted"].includes(event?.error)) return;
+      // Our own cancel operations invalidate the generation first. Any error
+      // still associated with the current utterance, including interruption
+      // or cancellation by the browser, must release the Play control.
       activeUtterance = null;
       playbackState = "paused";
-      report("Your browser could not continue. Try Resume or another voice.");
+      persist();
+      const reason = event?.error;
+      report(reason === "interrupted" || reason === "canceled"
+        ? "Narration interrupted. Select Resume to continue."
+        : "Your browser could not continue. Try Resume or another voice.");
       updateControls();
     };
     try {
@@ -251,7 +257,10 @@
     });
   }
   root.addEventListener("pagehide", () => {
-    if (playbackState === "playing") cancelCurrent();
+    // Browsers can retain this document in the back/forward cache. Canceling
+    // speech without updating state leaves Play disabled on restoration.
+    // Pause explicitly, retaining the current short-phrase boundary.
+    if (playbackState === "playing") pause();
   });
   report(saved ? "Ready to resume — paragraph " + (paragraphIndex + 1)
     + " of " + paragraphs.length
