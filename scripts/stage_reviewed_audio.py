@@ -45,8 +45,9 @@ def stage(source: Path, drafts: Path, asr: Path, notes: Path, approval: Path,
           output: Path, *, validator=verify_release) -> Path:
     """Verify evidence, then atomically prepare a private, unpublished release bundle."""
     source, drafts, output = source.resolve(), drafts.resolve(), output.resolve()
-    if output.exists() or output in (source, drafts):
-        raise ValueError("Output must be a new, separate private directory")
+    if (output.exists() or output == source or output == drafts
+            or output.is_relative_to(source) or output.is_relative_to(drafts)):
+        raise ValueError("Output must be a new private directory outside the repository and draft archive")
     expected = {e["slug"] for e in json.loads(
         (source / "content/essays.json").read_text(encoding="utf-8")
     )}
