@@ -92,3 +92,26 @@ python scripts/build.py --strict  # now succeeds with all six imported texts
 - https://mateopetel.substack.com/p/from-extension-agents-to-forward
 - https://mateopetel.substack.com/p/who-pays-for-the-scientist-who-makes
 - https://mateopetel.substack.com/p/between-the-manual-lab-and-the-self
+
+## Reader experience
+
+All six essays now have a curated, collapsible table of contents with paragraph links. These labels are stored in `content/landmarks.json`, separate from the imported source HTML. The strict build verifies that every referenced paragraph exists and refuses invalid landmarks. The complete article remains readable without JavaScript.
+
+A small, dependency-free `reader.js` module optionally remembers the last paragraph using browser-local storage, shows a "Continue reading" link on the homepage, and displays scroll progress. Reading state stays in the visitor's browser. No account, cookie, external telemetry, or server-side reading history exists. Storage errors leave the reading experience operational.
+
+### Audio publication gate
+
+The site contains audio-player support but **no recordings are published yet**. Listening controls appear only for an authenticated local MP3 specified in `content/audio.json`. To add an approved recording:
+
+1. Produce and review a complete narration against its source essay.
+2. Save it as `media/<essay-slug>.mp3` within the repository.
+3. Calculate `sha256sum media/<essay-slug>.mp3` and add the manifest entry, e.g.
+   `"scientific-loop": {"path": "media/scientific-loop.mp3", "sha256": "<64-character SHA-256>"}`.
+4. Run `python -m pytest -q`, `node --check reader.js` and `python scripts/build.py --strict --base-url https://fraware.github.io/forward-science`.
+5. Confirm playback, seeking, speed control, interruption/resumption, and mobile/screen-reader operation before deployment.
+
+The player uses native browser audio controls and restores position only through optional local storage. Navigation between independent HTML pages restarts the document, so playback itself does not continue seamlessly across page changes. Keep MP3 files compressed and monitor GitHub Pages repository and bandwidth quotas. Do not add unchecked or incomplete recordings solely to activate the Listen interface.
+
+### Editorial requirements
+
+Navigation landmarks are newly authored editorial aids, not reproduced section headings from the essays. Review their precise positions, labels, and implications before public release. Any future modifications to an imported article still need new provenance records; section anchors must be reviewed again following such changes.
