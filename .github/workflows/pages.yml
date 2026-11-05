@@ -39,3 +39,7 @@ jobs:
           path: site
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Compare public Pages release with deployed artifact
+        env:
+          SITE_BASE_URL: ${{ vars.SITE_BASE_URL || 'https://fraware.github.io/forward-science' }}
+        run: python scripts/check_publication.py --site site --base-url "$SITE_BASE_URL" --attempts 8 --delay 12
