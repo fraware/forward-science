@@ -24,7 +24,7 @@ def synthetic_post() -> str:
         "The scientific loop connects a defensible question to measurement and subsequent action."
         for _ in range(55)
     ]
-    return "<div><p>" + " ".join(sentences[:28]) + "</p><p>" + " ".join(sentences[28:]) + "</p><p><a href='https://example.org/paper'>Reference</a>.</p></div>"
+    return "<div>" + "".join("<p>" + " ".join(sentences[i:i+2]) + "</p>" for i in range(0, len(sentences), 2)) + "<p><a href='https://example.org/paper'>Reference</a>.</p></div>"
 
 
 def make_synthetic_export(tmp_path: Path) -> Path:
