@@ -193,3 +193,13 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .audio-edition audio { display: block; width: 100%; margin-bottom: 12px; }
 .audio-edition select { margin-left: 7px; font: inherit; background: var(--paper); color: var(--ink); border: 1px solid var(--line); padding: 4px; }
 @media print { .reading-tools, .reading-progress, .continue-reading { display: none !important; } }
+
+/* Downloadable editions belong to the series, not individual source bodies. */
+.download-editions { margin: 12px auto 58px; padding: 28px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.download-editions h2 { margin: 0; font: 400 30px/1.25 var(--serif); }
+.download-editions p { color: var(--muted); font: 16px/1.55 var(--serif); }
+.download-editions__links, .chapter-download { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.download-editions__links a, .chapter-download a { font: 600 13px/1.5 var(--sans); color: var(--accent); }
+.chapter-download { padding: 20px 0 4px; font: 12px/1.5 var(--sans); }
+.chapter-download span { color: var(--muted); }
+@media print { .download-editions, .chapter-download { display: none; } }

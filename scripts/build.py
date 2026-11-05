@@ -167,7 +167,7 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
     )
     output.mkdir(parents=True, exist_ok=True)
     (output / "index.html").write_text(
-        env.get_template("index.html.j2").render(essays=essays, base_url=base_url), encoding="utf-8"
+        env.get_template("index.html.j2").render(essays=essays, base_url=base_url, editions_enabled=strict), encoding="utf-8"
     )
     for i, essay in enumerate(essays):
         page = output / essay["slug"]
@@ -177,6 +177,7 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
             previous=essays[i - 1] if i else None,
             next=essays[i + 1] if i + 1 < len(essays) else None,
             base_url=base_url,
+            editions_enabled=strict,
         )
         (page / "index.html").write_text(html, encoding="utf-8")
     for filename in ("styles.css", "favicon.svg", "reader.js"):
@@ -187,6 +188,17 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(root / essay["audio"], target)
     (output / ".nojekyll").touch()
+    if strict:
+        # Build additional editions only after six-essay source validation.
+        # Import from this versioned checkout, never from an unrelated package.
+        import importlib.util
+        exporter = Path(__file__).with_name("export_editions.py")
+        spec = importlib.util.spec_from_file_location("forward_science_editions", exporter)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("Missing edition exporter")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.build(root, output / "downloads", base_url or "https://fraware.github.io/forward-science")
     if base_url and not incomplete:
         from xml.sax.saxutils import escape
         urls = [base_url + "/"] + [base_url + "/" + e["slug"] + "/" for e in essays]

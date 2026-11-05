@@ -69,6 +69,11 @@
         <p><a class="source-action" href="{{ essay.original_url }}" target="_blank" rel="noopener noreferrer">Read the full essay on Substack <span aria-hidden="true">↗</span></a></p>
       </div>
     {% endif %}
+    {% if editions_enabled %}
+    <nav class="chapter-download narrow" aria-label="Read the complete series offline">
+      <span>Complete collection</span><a href="../downloads/forward-science.pdf" download>PDF</a><a href="../downloads/forward-science.epub" download>EPUB</a><a href="../downloads/forward-science.md" download>Markdown</a>
+    </nav>
+    {% endif %}
     <div class="chapter-source narrow"><p>Originally published on <a href="{{ essay.original_url }}" target="_blank" rel="noopener noreferrer">Critical Systems <span aria-hidden="true">↗</span></a>.</p></div>
     <nav class="chapter-navigation narrow" aria-label="Essay navigation">
       <a href="{{ '../' ~ previous.slug ~ '/' if previous else '../#essays' }}" class="chapter-navigation__item"><span>{{ '← Previous essay' if previous else '← All essays' }}</span><strong>{{ previous.title if previous else 'The complete series' }}</strong></a>

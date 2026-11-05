@@ -115,3 +115,9 @@ The player uses native browser audio controls and restores position only through
 ### Editorial requirements
 
 Navigation landmarks are newly authored editorial aids, not reproduced section headings from the essays. Review their precise positions, labels, and implications before public release. Any future modifications to an imported article still need new provenance records; section anchors must be reviewed again following such changes.
+
+## Offline reading editions and narration preparation
+
+The strict build generates accessible Markdown, EPUB 3 and PDF editions from the original six verified article bodies. The exports are stored under `site/downloads/` and linked from the homepage and individual chapters. The PDF includes a linked contents section, page numbers and source references; the EPUB includes a six-chapter navigation structure. The build refuses source modifications that conflict with the recorded source hashes. No private Substack subscriber data is included.
+
+For a future narration, run `python scripts/prepare_narration.py --out narration-work` locally. The command generates six complete UTF-8 manuscripts, paragraph-bounded narration chunks and an integrity manifest. This produces **text only**. Recordings have yet to be produced, reviewed and added to the checksum-gated audio manifest. The resulting manuscripts should be reviewed by a narrator or used with a connected voice-production provider; voice quality, scientific pronunciation and chapter completeness need listening checks before any audio is published.
