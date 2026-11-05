@@ -110,3 +110,29 @@ def test_published_pages_preserve_source_and_omit_export_footer(tmp_path: Path) 
         assert page.select_one('meta[property="og:site_name"]')["content"] == "Forward Science"
         if essay["number"] == "00":
             assert page.title.string == "Forward Science — Mateo H. Petel"
+
+def test_landmark_navigation_is_semantically_valid(tmp_path: Path) -> None:
+    """Curated destinations must match real paragraphs without altering source."""
+    essays = module.build(ROOT, tmp_path / "landmark-build", "https://example.org", strict=True)
+    for essay in essays:
+        page = BeautifulSoup(
+            (tmp_path / "landmark-build" / essay["slug"] / "index.html").read_text(),
+            "html.parser",
+        )
+        anchors = page.select(".reader-toc nav a")
+        assert 3 <= len(anchors) <= 7
+        assert len(anchors) == len(essay["landmarks"])
+        for anchor in anchors:
+            dest = anchor["href"][1:]
+            assert page.select_one(f"article p[id='{dest}']") is not None
+        assert page.select_one("script[src='../reader.js']") is not None
+        assert (tmp_path / "landmark-build" / "reader.js").is_file()
+
+
+def test_audio_is_not_advertised_without_recordings(tmp_path: Path) -> None:
+    """Audio playback appears exclusively when a verified asset is present."""
+    module.build(ROOT, tmp_path / "no-audio", "https://example.org", strict=True)
+    for essay in module.load_essays(ROOT):
+        text = (tmp_path / "no-audio" / essay["slug"] / "index.html").read_text()
+        assert 'class="audio-edition"' not in text
+        assert "<audio " not in text

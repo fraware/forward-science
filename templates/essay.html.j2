@@ -19,8 +19,9 @@
   <title>{{ essay.title ~ ' — Mateo H. Petel' if essay.number == '00' else essay.title ~ ' — Forward Science' }}</title>
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../styles.css">
+  <script src="../reader.js" defer></script>
 </head>
-<body>
+<body data-essay-slug="{{ essay.slug }}">
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header"><div class="shell site-header__inner">
     <a class="wordmark" href="../" aria-label="Forward Science homepage">FORWARD SCIENCE<span class="wordmark__period">.</span></a>
@@ -34,6 +35,31 @@
       <p class="chapter-byline">Mateo H. Petel <span aria-hidden="true">·</span> <time datetime="{{ essay.date }}">{{ essay.date_long }}</time></p>
     </header>
     <div class="narrow"><hr class="rule"></div>
+    {% if essay.complete %}
+    <section class="reading-tools narrow" aria-label="Reading tools">
+      <details class="reader-toc">
+        <summary>In this essay <span aria-hidden="true">⌄</span></summary>
+        <nav aria-label="Sections of this essay">
+          <ol>{% for landmark in essay.landmarks %}<li><a href="#{{ landmark.anchor }}">{{ landmark.label }}</a></li>{% endfor %}</ol>
+        </nav>
+      </details>
+      <div class="reader-actions">
+        <button type="button" class="resume-reading" hidden>Resume reading</button>
+        <button type="button" class="copy-citation" data-citation="{{ essay.title }}. Mateo H. Petel ({{ essay.date_long }}). {{ (base_url ~ '/' ~ essay.slug ~ '/') if base_url else essay.original_url }}">Copy citation</button>
+        <span class="reader-status" role="status" aria-live="polite"></span>
+      </div>
+      {% if essay.audio %}
+      <div class="audio-edition" aria-label="Audio edition">
+        <p class="audio-edition__title">Listen to this essay</p>
+        <audio controls preload="metadata" data-audio-for="{{ essay.slug }}" src="../{{ essay.audio }}">Your browser does not support audio playback. The complete transcript is below.</audio>
+        <label>Playback speed <select class="audio-speed" aria-label="Audio playback speed">
+          <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
+        </select></label>
+      </div>
+      {% endif %}
+    </section>
+    <div class="reading-progress" aria-hidden="true"><span></span></div>
+    {% endif %}
     {% if essay.complete %}
       <article class="prose narrow" aria-label="Full essay">{{ essay.display_body | safe }}</article>
     {% else %}

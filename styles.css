@@ -169,3 +169,27 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
   .prose { padding-top: 28px; }
   .prose a { color: inherit; }
 }
+
+/* Minimal reader tools. These remain unobtrusive and work without client-side state. */
+.reading-tools { padding-top: 24px; font: 13px/1.6 var(--sans); }
+.reader-toc { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.reader-toc summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
+.reader-toc summary span { margin-left: 6px; }
+.reader-toc ol { margin: 10px 0 4px; padding-left: 20px; }
+.reader-toc li { margin: 0 0 9px; }
+.reader-toc a { text-decoration-thickness: 1px; }
+.reader-actions { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 15px 0 0; }
+.reader-actions button, .continue-reading button { font: inherit; color: var(--accent); background: transparent; border: 0; padding: 5px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.reader-actions button:focus-visible, .continue-reading button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.reader-status { color: var(--muted); }
+.reading-progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 30; pointer-events: none; }
+.reading-progress span { display: block; height: 100%; width: 0; background: var(--accent); }
+.prose p[id] { scroll-margin-top: 32px; }
+.continue-reading { margin-bottom: 38px; border-top: 1px solid var(--line); padding-top: 22px; font: 14px/1.6 var(--sans); }
+.continue-reading a { display: inline-block; font: 18px/1.5 var(--serif); margin: 12px 18px 0 0; }
+.continue-reading button { display: inline-block; font-size: 12px; }
+.audio-edition { margin-top: 24px; padding: 20px 0; border-top: 1px solid var(--line); }
+.audio-edition__title { font-weight: 600; margin: 0 0 12px; }
+.audio-edition audio { display: block; width: 100%; margin-bottom: 12px; }
+.audio-edition select { margin-left: 7px; font: inherit; background: var(--paper); color: var(--ink); border: 1px solid var(--line); padding: 4px; }
+@media print { .reading-tools, .reading-progress, .continue-reading { display: none !important; } }

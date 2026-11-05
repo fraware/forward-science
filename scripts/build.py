@@ -56,6 +56,12 @@ def load_essays(root: Path) -> list[dict]:
     if not isinstance(manifest, list) or len(manifest) != 6:
         raise ValueError("Forward Science must have exactly six records")
     slugs: set[str] = set()
+    landmark_map = json.loads((root / "content" / "landmarks.json").read_text(encoding="utf-8"))
+    if set(landmark_map) != {record["slug"] for record in manifest}:
+        raise ValueError("Navigation landmarks must cover precisely the six essays")
+    audio_manifest = json.loads((root / "content" / "audio.json").read_text(encoding="utf-8"))
+    if not isinstance(audio_manifest, dict) or set(audio_manifest) - set(landmark_map):
+        raise ValueError("Audio manifest contains unrecognized essays")
     for position, e in enumerate(manifest):
         if e["number"] != f"{position:02d}" or not SLUG.fullmatch(e["slug"]):
             raise ValueError(f"Invalid sequence/slug: {e}")
@@ -72,6 +78,38 @@ def load_essays(root: Path) -> list[dict]:
         # Keep the imported source intact for checksum verification. The final
         # Substack subscription widget is distribution boilerplate, not essay prose.
         e["display_body"] = e["body"].strip().removesuffix(SUBSTACK_SUBSCRIBE_FOOTER).strip()
+        # Anchors are added only to rendered HTML; source and provenance stay immutable.
+        paragraphs = 0
+        def number_paragraph(match: re.Match[str]) -> str:
+            nonlocal paragraphs
+            paragraphs += 1
+            return f'<p id="p-{paragraphs:02d}">'
+        e["display_body"] = re.sub(r"<p>", number_paragraph, e["display_body"])
+        e["paragraph_count"] = paragraphs
+        positions = landmark_map[e["slug"]]
+        if not isinstance(positions, list) or not (3 <= len(positions) <= 7):
+            raise ValueError(f"Invalid navigation landmark count: {e['slug']}")
+        previous_position = -1
+        e["landmarks"] = []
+        for index, label in positions:
+            if (not isinstance(index, int) or index <= previous_position
+                    or index >= paragraphs or not isinstance(label, str)
+                    or not label.strip() or len(label) > 90):
+                raise ValueError(f"Invalid landmark: {e['slug']} at {index}")
+            e["landmarks"].append({"label": label, "anchor": f"p-{index+1:02d}"})
+            previous_position = index
+        e["audio"] = None
+        recording = audio_manifest.get(e["slug"])
+        if recording is not None:
+            if not isinstance(recording, dict) or recording.get("path") != f"media/{e['slug']}.mp3":
+                raise ValueError(f"Invalid audio path: {e['slug']}")
+            source_file = root / recording["path"]
+            if not source_file.is_file():
+                raise ValueError(f"Audio file missing: {e['slug']}")
+            actual_sha = hashlib.sha256(source_file.read_bytes()).hexdigest()
+            if actual_sha != recording.get("sha256"):
+                raise ValueError(f"Audio checksum mismatch: {e['slug']}")
+            e["audio"] = recording["path"]
         if e["complete"]:
             if not e["body"].strip():
                 raise ValueError(f"Empty body file: {body_path}")
@@ -140,8 +178,13 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
             base_url=base_url,
         )
         (page / "index.html").write_text(html, encoding="utf-8")
-    for filename in ("styles.css", "favicon.svg"):
+    for filename in ("styles.css", "favicon.svg", "reader.js"):
         shutil.copy2(root / filename, output / filename)
+    for essay in essays:
+        if essay["audio"]:
+            target = output / essay["audio"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(root / essay["audio"], target)
     (output / ".nojekyll").touch()
     if base_url and not incomplete:
         from xml.sax.saxutils import escape
