@@ -26,6 +26,7 @@ jobs:
         env:
           SITE_BASE_URL: ${{ vars.SITE_BASE_URL || 'https://fraware.github.io/forward-science' }}
         run: |
+          node --check reader.js
           python -m pytest -q
           python scripts/build.py --strict --base-url "$SITE_BASE_URL"
           test -f site/sitemap.xml

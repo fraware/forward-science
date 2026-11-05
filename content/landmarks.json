@@ -1,0 +1,134 @@
+{
+  "forward-science": [
+    [
+      0,
+      "The institutional problem"
+    ],
+    [
+      2,
+      "The doctrine of Forward Science"
+    ],
+    [
+      4,
+      "The scientific loop"
+    ],
+    [
+      7,
+      "An institutional profession"
+    ],
+    [
+      8,
+      "The future laboratory"
+    ]
+  ],
+  "forward-deployed-scientists": [
+    [
+      1,
+      "The missing scientific role"
+    ],
+    [
+      6,
+      "The deployment gap"
+    ],
+    [
+      8,
+      "Diagnostic judgment"
+    ],
+    [
+      12,
+      "Scientific agency"
+    ],
+    [
+      14,
+      "Institutional recognition"
+    ]
+  ],
+  "scientific-loop": [
+    [
+      1,
+      "The object of deployment"
+    ],
+    [
+      2,
+      "Defining the scientific loop"
+    ],
+    [
+      6,
+      "Automation and evidence"
+    ],
+    [
+      10,
+      "Scientific judgment"
+    ],
+    [
+      14,
+      "Criteria for failure"
+    ]
+  ],
+  "extension-agents": [
+    [
+      1,
+      "The history of intermediaries"
+    ],
+    [
+      2,
+      "Agricultural extension"
+    ],
+    [
+      6,
+      "Field epidemiology"
+    ],
+    [
+      8,
+      "Instrument science"
+    ],
+    [
+      10,
+      "The problem of recognition"
+    ]
+  ],
+  "political-economy": [
+    [
+      1,
+      "The first market"
+    ],
+    [
+      6,
+      "The earliest buyers"
+    ],
+    [
+      9,
+      "Scaling through diagnosis"
+    ],
+    [
+      12,
+      "Training the profession"
+    ],
+    [
+      18,
+      "Public infrastructure"
+    ]
+  ],
+  "future-laboratory": [
+    [
+      1,
+      "The laboratory frontier"
+    ],
+    [
+      4,
+      "Loop-governed science"
+    ],
+    [
+      6,
+      "Technical judgment"
+    ],
+    [
+      8,
+      "Variation across domains"
+    ],
+    [
+      12,
+      "Autonomy and evidence"
+    ]
+  ]
+}

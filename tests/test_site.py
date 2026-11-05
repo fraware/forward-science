@@ -34,8 +34,10 @@ def preview_root(tmp_path: Path) -> Path:
     (root / "content" / "essays.json").write_bytes((ROOT / "content" / "essays.json").read_bytes())
     for template in (ROOT / "templates").iterdir():
         (root / "templates" / template.name).write_bytes(template.read_bytes())
-    for asset in ("styles.css", "favicon.svg"):
+    for asset in ("styles.css", "favicon.svg", "reader.js"):
         (root / asset).write_bytes((ROOT / asset).read_bytes())
+    (root / "content" / "landmarks.json").write_bytes((ROOT / "content" / "landmarks.json").read_bytes())
+    (root / "content" / "audio.json").write_bytes((ROOT / "content" / "audio.json").read_bytes())
     return root
 
 
@@ -110,3 +112,59 @@ def test_published_pages_preserve_source_and_omit_export_footer(tmp_path: Path) 
         assert page.select_one('meta[property="og:site_name"]')["content"] == "Forward Science"
         if essay["number"] == "00":
             assert page.title.string == "Forward Science — Mateo H. Petel"
+
+def test_landmark_navigation_is_semantically_valid(tmp_path: Path) -> None:
+    """Curated destinations must match real paragraphs without altering source."""
+    essays = module.build(ROOT, tmp_path / "landmark-build", "https://example.org", strict=True)
+    for essay in essays:
+        page = BeautifulSoup(
+            (tmp_path / "landmark-build" / essay["slug"] / "index.html").read_text(),
+            "html.parser",
+        )
+        anchors = page.select(".reader-toc nav a")
+        assert 3 <= len(anchors) <= 7
+        assert len(anchors) == len(essay["landmarks"])
+        for anchor in anchors:
+            dest = anchor["href"][1:]
+            assert page.select_one(f"article p[id='{dest}']") is not None
+        assert page.select_one("script[src='../reader.js']") is not None
+        assert (tmp_path / "landmark-build" / "reader.js").is_file()
+
+
+def test_audio_is_not_advertised_without_recordings(tmp_path: Path) -> None:
+    """Audio playback appears exclusively when a verified asset is present."""
+    module.build(ROOT, tmp_path / "no-audio", "https://example.org", strict=True)
+    for essay in module.load_essays(ROOT):
+        text = (tmp_path / "no-audio" / essay["slug"] / "index.html").read_text()
+        assert 'class="audio-edition"' not in text
+        assert "<audio " not in text
+
+
+def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
+    """Only a checksum-verified recording may appear in the public player."""
+    import hashlib
+    import json
+    import shutil
+
+    source = tmp_path / "source"
+    shutil.copytree(ROOT / "content", source / "content")
+    shutil.copytree(ROOT / "templates", source / "templates")
+    for asset in ("styles.css", "favicon.svg", "reader.js"):
+        shutil.copy2(ROOT / asset, source / asset)
+    slug = "scientific-loop"
+    media = source / "media" / f"{slug}.mp3"
+    media.parent.mkdir()
+    # The fixture deliberately uses inert bytes; it validates the release gate,
+    # not MP3 decoding or listening quality.
+    data = b"sample-audio-fixture"
+    media.write_bytes(data)
+    manifest = {slug: {"path": f"media/{slug}.mp3", "sha256": hashlib.sha256(data).hexdigest()}}
+    (source / "content" / "audio.json").write_text(json.dumps(manifest), encoding="utf-8")
+    site = tmp_path / "site"
+    module.build(source, site, None, strict=True)
+    page = BeautifulSoup((site / slug / "index.html").read_text(), "html.parser")
+    assert page.select_one("audio[src='../media/scientific-loop.mp3']") is not None
+    assert (site / "media" / f"{slug}.mp3").read_bytes() == data
+    media.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="Audio checksum mismatch"):
+        module.build(source, tmp_path / "invalid", None, strict=True)
