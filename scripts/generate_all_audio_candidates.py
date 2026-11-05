@@ -12,12 +12,12 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from generate_narration_candidate import text_chunks
-from prepare_narration import compile_narration
 
 
 def segments_for(text: str, max_chars: int = 850) -> list[tuple[str, bool]]:
     """Return source-faithful speech chunks and paragraph-break markers."""
+    from generate_narration_candidate import text_chunks
+
     paragraphs = [p.strip() for p in text.strip().split("\n\n")]
     if not paragraphs or any(not p for p in paragraphs):
         raise ValueError("Narration contains an empty paragraph")
@@ -50,6 +50,7 @@ def encode_audio(wav: Path, mp3: Path) -> None:
 
 
 def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, limit: int) -> dict:
+    from prepare_narration import compile_narration
     import numpy as np
     import soundfile as sf
     from kokoro_onnx import Kokoro
