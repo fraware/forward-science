@@ -1,0 +1,55 @@
+name: Produce six UNREVIEWED narration drafts
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/narration-drafts.yml
+permissions:
+  contents: read
+jobs:
+  drafts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install open-weight CPU speech runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng ffmpeg
+          python -m pip install --disable-pip-version-check kokoro-onnx==0.6.1 numpy soundfile
+          python -m pip install -r requirements-build.txt
+      - name: Retrieve official speech model and voices
+        run: |
+          mkdir -p "$RUNNER_TEMP/kokoro"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" \
+            https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.onnx
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
+            https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin
+          sha256sum "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
+            > "$RUNNER_TEMP/kokoro/model-provenance.sha256"
+      - name: Generate full-length source-faithful draft candidates
+        run: |
+          python scripts/generate_all_audio_candidates.py \
+            --root . \
+            --model "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" \
+            --voices "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
+            --voice af_heart --max-chars 850 --output narration-drafts
+          cp "$RUNNER_TEMP/kokoro/model-provenance.sha256" narration-drafts/
+          test "$(find narration-drafts -maxdepth 1 -name 'UNREVIEWED-*.mp3' | wc -l)" -eq 6
+          test "$(find narration-drafts -maxdepth 1 -name 'UNREVIEWED-*.wav' | wc -l)" -eq 0
+      - name: Upload six unreviewed drafts for listening QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOR-EDITORIAL-REVIEW-ONLY-six-narrations
+          path: |
+            narration-drafts/UNREVIEWED-*.mp3
+            narration-drafts/UNREVIEWED-MANIFEST.json
+            narration-drafts/READ-ME-FIRST.txt
+            narration-drafts/model-provenance.sha256
+            narration-drafts/manuscripts/*.txt
+          retention-days: 7
+          if-no-files-found: error
