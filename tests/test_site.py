@@ -158,7 +158,11 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     # not MP3 decoding or listening quality.
     data = b"sample-audio-fixture"
     media.write_bytes(data)
-    manifest = {slug: {"path": f"media/{slug}.mp3", "sha256": hashlib.sha256(data).hexdigest()}}
+    manifest = {slug: {
+        "path": f"media/{slug}.mp3",
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "voice": {"type": "synthetic", "name": "af_heart", "provider": "Kokoro-82M"},
+    }}
     (source / "content" / "audio.json").write_text(json.dumps(manifest), encoding="utf-8")
     site = tmp_path / "site"
     # A synthetic byte sequence exercises only the existing path/hash gate.
@@ -168,6 +172,10 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
         module.build(source, tmp_path / "unreviewed", None, strict=True)
     page = BeautifulSoup((site / slug / "index.html").read_text(), "html.parser")
     assert page.select_one("audio[src='../media/scientific-loop.mp3']") is not None
+    description = page.select_one(".audio-edition__description")
+    assert description is not None
+    assert "Synthetic narration" in description.get_text(" ", strip=True)
+    assert "af_heart" in description.get_text(" ", strip=True)
     assert (site / "media" / f"{slug}.mp3").read_bytes() == data
     media.write_bytes(b"tampered")
     with pytest.raises(ValueError, match="Audio checksum mismatch"):

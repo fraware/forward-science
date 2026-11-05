@@ -78,3 +78,18 @@ def test_mastered_mp3_loudness_measured_with_real_ffmpeg(tmp_path):
     measurement = module.measure_audio(mp3)
     assert -20 <= measurement["integrated_lufs"] <= -16
     assert measurement["true_peak_dbtp"] <= -1
+
+
+def test_generation_rejects_unpinned_voice_or_model_files(tmp_path):
+    import pytest
+    model = tmp_path / "kokoro-v1.0.onnx"
+    voices = tmp_path / "voices-v1.0.bin"
+    model.write_bytes(b"tampered-model")
+    voices.write_bytes(b"tampered-voice")
+    with pytest.raises(ValueError, match="checksum mismatch"):
+        module.verify_model_assets(model, voices)
+    model.unlink()
+    with pytest.raises(ValueError, match="Missing or unsafe"):
+        module.verify_model_assets(model, voices)
+    assert len(module.KOKORO_MODEL_SHA256) == 64
+    assert len(module.KOKORO_VOICES_SHA256) == 64

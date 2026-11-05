@@ -212,3 +212,5 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .device-narration__status { color: var(--muted); font: 12px/1.5 var(--sans); min-height: 1.5em; margin: 13px 0 0; }
 .prose p.is-being-narrated { background: rgba(73, 88, 70, .065); border-radius: 2px; }
 @media print { .device-narration { display: none !important; } }
+
+.audio-edition__description { font: 12px/1.6 var(--sans); color: var(--muted); margin: 0 0 14px; }

@@ -52,6 +52,11 @@
       {% if essay.audio %}
       <div class="audio-edition" aria-label="Audio edition">
         <p class="audio-edition__title">Listen to this essay</p>
+        {% if essay.audio_voice %}
+        <p class="audio-edition__description">{{ "Synthetic narration" if essay.audio_voice.type == "synthetic" else "Human narration" }} · {{ essay.audio_voice.name }} · {{ essay.audio_voice.provider }}. The full written transcript follows below.</p>
+        {% else %}
+        <p class="audio-edition__description">The complete written transcript follows below.</p>
+        {% endif %}
         <audio controls preload="metadata" data-audio-for="{{ essay.slug }}" src="../{{ essay.audio }}">Your browser does not support audio playback. The complete transcript is below.</audio>
         <label>Playback speed <select class="audio-speed" aria-label="Audio playback speed">
           <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
