@@ -219,3 +219,16 @@ approved build artifact. Large non-audio files retain lighter HEAD checks.
 This catches audio substitutions that preserve file length; it adds bandwidth
 only to a publication carrying approved recordings. Public MP3 playback is
 still absent until recorded-text and listening review pass.
+
+
+### Independent narration-discrepancy triage
+
+The independent ASR audit reports both raw word error rate and an additional
+conservative content-edit estimate. Orthographic splitting or joining (such as
+`first hand` → `firsthand`) no longer counts as substantive drift, while
+homophones, omitted qualifications, inflections, unusual terminology and
+ASR-uncertain phrases remain in the listening queue. **Every content mismatch
+is included in the review queue, even with low estimated WER.** This is
+prioritization only: audio-to-text comparison is not a substitute for
+full-length listening. The original manuscript, recorded audio and ASR
+transcripts remain independently versioned and unapproved until sign-off.

@@ -74,3 +74,28 @@ def test_audit_never_grants_approval_and_exposes_discrepancies():
     assert "UNREVIEWED_AUTOMATED_INSPECTION_ONLY" in (
         ROOT / "scripts/audit_narration_asr.py"
     ).read_text()
+
+
+def test_orthographic_joining_never_becomes_a_high_priority_audio_alarm():
+    """Spelling-only ASR differences must be distinguished from content errors."""
+    item = audit.compare(
+        "What National Labs saw first hand is that the work continues.",
+        "What National Labs saw firsthand is that the work continues.",
+    )
+    assert item["word_error_rate"] > 0
+    assert item["content_edit_ratio"] == 0
+    assert item["priority"] == "low"
+    assert not item["human_check_needed"]
+    assert item["orthographic_variants"]
+    assert not item["critical_mismatches"]
+
+
+def test_homophones_and_missing_qualifications_remain_reviewable():
+    """Similar-sounding words remain content uncertainties; omitted negation is high priority."""
+    homophone = audit.compare("Scientific sight sustains the institution.", "Scientific site sustains the institution.")
+    assert homophone["human_check_needed"]
+    assert homophone["content_mismatches"]
+    lost_negation = audit.compare("The model must not determine the experiment.", "The model must determine the experiment.")
+    assert lost_negation["priority"] == "high"
+    assert lost_negation["human_check_needed"]
+    assert audit.compare("The instrument will require local validation.", "The instrument will require validation.")["human_check_needed"]
