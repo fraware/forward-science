@@ -1,0 +1,18 @@
+{
+  "authorize_release_candidate": false,
+  "reviewer": "",
+  "reviewed_on": "YYYY-MM-DD",
+  "voice": {
+    "type": "synthetic",
+    "name": "af_heart",
+    "provider": "Kokoro-82M (hexgrad) via kokoro-onnx",
+    "distribution_rights_basis": ""
+  },
+  "attestations": {
+    "listened_in_full": false,
+    "spoken_text_checked": false,
+    "pronunciation_checked": false,
+    "audio_artifacts_checked": false,
+    "distribution_rights_confirmed": false
+  }
+}
