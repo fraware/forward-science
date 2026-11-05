@@ -232,3 +232,38 @@ is included in the review queue, even with low estimated WER.** This is
 prioritization only: audio-to-text comparison is not a substitute for
 full-length listening. The original manuscript, recorded audio and ASR
 transcripts remain independently versioned and unapproved until sign-off.
+
+
+## Controlled six-essay audio publication handoff
+
+\`scripts/stage_reviewed_audio.py\` converts **private**, explicit human review
+evidence into a staged release bundle. The original draft archive and
+independent \`ASR_AUDIT_UNREVIEWED.json\` must match by SHA-256. Export notes from
+the private ASR-assisted listening interface; its JSON must identify all six
+exact MP3s, mark each \`__fullListened: true\`, and mark every ASR-flagged phrase
+\`checked\` with a substantive adjudication note. Any unresolved \`problem\`
+blocks staging.
+
+A separate reviewer-authored \`approval.json\` must include a genuine
+\`authorize_release_candidate: true\`, actual reviewer and ISO review date,
+the voice provenance (\`type: synthetic\`, \`name: af_heart\`, provider, specific
+distribution-rights basis), and five honestly asserted boolean \`attestations\`
+(\`listened_in_full\`, \`spoken_text_checked\`, \`pronunciation_checked\`,
+\`audio_artifacts_checked\`, \`distribution_rights_confirmed\`). Never
+fabricate the reviewer details or a listening judgment.
+
+\`\`\`bash
+python scripts/stage_reviewed_audio.py --source . \
+  --drafts /private/unreviewed-drafts \
+  --asr /private/asr/ASR_AUDIT_UNREVIEWED.json \
+  --notes /private/forward-science-narration-review-notes.json \
+  --approval /private/approval.json \
+  --output /private/release-staging
+\`\`\`
+
+A successful run re-verifies all six audio/source hashes, review coverage,
+reviewer declarations, FFmpeg full-file decoding, codec, duration, loudness,
+peak and long-silence thresholds. It produces a private \`media/\` directory,
+\`audio.json\` for later copying into \`content/\`, and a provenance receipt.
+It **does not modify the Git repository or public site**. A reviewed Git
+commit and passing production deployment remain mandatory for publication.
