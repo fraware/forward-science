@@ -161,6 +161,18 @@ def validate_provenance(root: Path, essays: list[dict]) -> None:
 def build(root: Path, output: Path, base_url: str | None, strict: bool = False) -> list[dict]:
     """Render the site; strict mode prevents deploying preview-only chapters."""
     base_url = verify_base_url(base_url)
+    # Never allow a generated-output path to overlap source or repository
+    # authority: a caller-supplied --out must not destroy editable files.
+    source_root = root.resolve()
+    target_root = output.resolve()
+    protected_roots = (
+        source_root / "content", source_root / "media",
+        source_root / "templates", source_root / "scripts",
+        source_root / ".github",
+    )
+    if (target_root == source_root or source_root.is_relative_to(target_root)
+            or any(target_root.is_relative_to(p) for p in protected_roots)):
+        raise ValueError("Generated output overlaps publication sources or repository files")
     essays = load_essays(root)
     incomplete = [e["slug"] for e in essays if not e["complete"]]
     if strict and incomplete:
@@ -186,6 +198,16 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
         lstrip_blocks=True,
     )
     output.mkdir(parents=True, exist_ok=True)
+    # A revoked audio manifest must withdraw previously generated media even
+    # on an incremental local build. Symlinks fail closed instead of allowing
+    # a build to affect files outside the output directory.
+    previous_media = output / "media"
+    if previous_media.is_symlink():
+        raise ValueError("Output media path is a symlink")
+    if previous_media.is_dir():
+        shutil.rmtree(previous_media)
+    elif previous_media.exists():
+        raise ValueError("Output media path is not a directory")
     # Clean legacy public downloads from earlier builds. Author-only exports
     # remain available through scripts/export_editions.py, never through Pages.
     obsolete_downloads = output / "downloads"
@@ -223,6 +245,20 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
     else:
         for filename in ("sitemap.xml", "robots.txt"):
             (output / filename).unlink(missing_ok=True)
+    if strict:
+        # Only explicitly generated files belong in the public artifact.
+        # Catch stray private exports or stale assets before Pages uploads it.
+        allowed = {
+            "index.html", "styles.css", "favicon.svg", "reader.js",
+            "device-narration.js", ".nojekyll", "sitemap.xml", "robots.txt",
+        }
+        allowed.update(f"{essay['slug']}/index.html" for essay in essays)
+        allowed.update(essay["audio"] for essay in essays if essay["audio"])
+        for item in output.rglob("*"):
+            if item.is_symlink():
+                raise ValueError(f"Symlink forbidden in generated publication: {item}")
+            if item.is_file() and item.relative_to(output).as_posix() not in allowed:
+                raise ValueError(f"Unexpected file in public publication: {item}")
     return essays
 
 
