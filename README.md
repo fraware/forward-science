@@ -134,3 +134,8 @@ Automated checks use mock speech engines; real voice quality and background play
 ### Browser narration interruption handling
 
 If the browser stops speech unexpectedly, the Listen controls enter an explicit paused state and retain the last short-phrase boundary. The reader can resume without encountering a disabled Play button. A `pagehide` event also pauses active speech to keep back/forward-cache restoration consistent. User-triggered Stop clears the saved position, while interrupted/paused playback retains it. These transitions are covered by simulated Web Speech regression tests; physical-device narration quality and background behavior still require external validation.
+
+
+### Linked-section listening
+
+Direct chapter links with a valid paragraph fragment (for example, `#p-03`) select the corresponding starting paragraph for browser narration, taking precedence over the older saved listening position. Switching sections using an in-essay anchor while audio is playing pauses narration, preserves the new position, and waits for an explicit Resume action. Invalid fragments are ignored. No navigation event triggers autoplay.

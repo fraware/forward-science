@@ -23,7 +23,7 @@ test("speech chunks reconstruct the exact normalized text", () => {
   assert.throws(() => splitNarrationText("test", 12), RangeError);
 });
 
-function createPage({ supported = true, saved = null, storageDisabled = false } = {}) {
+function createPage({ supported = true, saved = null, storageDisabled = false, anchor = "" } = {}) {
   const elements = new Map();
   const el = (extra = {}) => Object.assign({
     textContent: "", value: "", disabled: false, hidden: false,
@@ -56,6 +56,7 @@ function createPage({ supported = true, saved = null, storageDisabled = false } 
     addEventListener() {},
   };
   const window = {
+    location: { hash: anchor },
     speechSynthesis: supported ? synth : undefined,
     SpeechSynthesisUtterance: supported ? function Utterance(text) { this.text = text; } : undefined,
     localStorage: {
@@ -172,4 +173,35 @@ test("pagehide leaves already paused and idle narration unchanged", () => {
   paused.window.dispatch("pagehide");
   assert.equal(paused.synth.cancelled, cancelled);
   assert.equal(paused.elements.get("play").textContent, "Resume");
+});
+
+
+test("deep links take precedence over a saved narration position", () => {
+  const ui = createPage({
+    anchor: "#p-03",
+    saved: { paragraph: 0, chunk: 0, rate: 1.5, voice: "test:voice" },
+  });
+  assert.equal(ui.elements.get("play").textContent, "Play");
+  assert.equal(ui.elements.get("rate").value, "1.5");
+  assert.match(ui.elements.get("status").textContent, /paragraph 3 of 3/);
+  ui.elements.get("play").click();
+  assert.equal(ui.synth.spoken.at(-1).text, "A final paragraph and conclusion.");
+});
+
+test("section navigation pauses and retargets speech without autoplay", () => {
+  const ui = createPage();
+  ui.elements.get("play").click();
+  const firstUtterance = ui.synth.spoken[0];
+  const countBefore = ui.synth.spoken.length;
+  ui.window.location.hash = "#p-02";
+  ui.window.dispatch("hashchange");
+  assert.equal(ui.elements.get("play").textContent, "Resume");
+  assert.equal(ui.synth.spoken.length, countBefore);
+  firstUtterance.onend();
+  assert.equal(ui.synth.spoken.length, countBefore);
+  ui.elements.get("play").click();
+  assert.equal(ui.synth.spoken.at(-1).text, "Second paragraph about scientific evidence.");
+  ui.window.location.hash = "#irrelevant";
+  ui.window.dispatch("hashchange");
+  assert.equal(ui.elements.get("play").disabled, true);
 });
