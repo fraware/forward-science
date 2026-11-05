@@ -54,12 +54,19 @@ def word_edit_distance(a: list[str], b: list[str]) -> int:
 
 
 def compare(reference: str, heard: str) -> dict:
+    """Separate transcript orthography from candidate changes in spoken content.
+
+    A spelling/spacing difference such as 'first hand' vs 'firsthand' has a
+    nonzero raw WER, yet is not evidence that speech diverged. Preserve raw WER
+    for reproducibility; prioritize content changes, critical qualifications
+    and clearly missing audio. ASR remains fallible.
+    """
     expected, recognized = tokens(reference), tokens(heard)
     if not expected:
         raise ValueError("Empty source phrase")
     wer = word_edit_distance(expected, recognized) / len(expected)
-    changes = []
-    critical = []
+    changes, content_changes, orthography, critical = [], [], [], []
+    estimated_content_edits = 0
     for kind, start, end, h_start, h_end in SequenceMatcher(
             None, expected, recognized, autojunk=False).get_opcodes():
         if kind == "equal":
@@ -68,17 +75,29 @@ def compare(reference: str, heard: str) -> dict:
         item = {"operation": kind, "reference": " ".join(old),
                 "recognized": " ".join(new)}
         changes.append(item)
+        # A deterministic joining/splitting test. This is deliberately
+        # conservative: it does not classify homophones as equivalent.
+        if old and new and "".join(old) == "".join(new):
+            orthography.append(item)
+            continue
+        content_changes.append(item)
+        estimated_content_edits += max(len(old), len(new))
         if CRITICAL.intersection(old) or CRITICAL.intersection(new):
             critical.append(item)
     ratio = len(recognized) / len(expected)
-    priority = ("high" if wer >= .20 or ratio < .70 or critical else
-                "medium" if wer >= .08 else "low")
+    content_ratio = estimated_content_edits / len(expected)
+    priority = ("high" if content_ratio >= .20 or ratio < .70 or critical else
+                "medium" if content_ratio >= .08 else "low")
     return {
         "word_error_rate": round(wer, 5), "priority": priority,
         "reference_words": len(expected), "asr_words": len(recognized),
         "word_count_ratio": round(ratio, 3),
+        "content_edit_ratio": round(content_ratio, 5),
         "critical_mismatches": critical[:12],
         "mismatch_count": len(changes), "mismatches": changes[:30],
+        "orthographic_variants": orthography[:30],
+        "content_mismatches": content_changes[:30],
+        "human_check_needed": bool(content_changes),
     }
 
 
@@ -182,7 +201,7 @@ def audit(source_root: Path, drafts: Path, output: Path,
                 "reference": reference, "recognized": heard, **verdict,
             }
             results.append(row)
-            if row["priority"] != "low":
+            if row["human_check_needed"] or row["priority"] != "low":
                 review.append(row)
         priorities = dict(Counter(x["priority"] for x in results))
         chapters.append({"slug": slug, "segments": results, "priorities": priorities})
@@ -192,6 +211,11 @@ def audit(source_root: Path, drafts: Path, output: Path,
         "chapters": len(chapters), "segments": sum(len(c["segments"]) for c in chapters),
         "high_priority": sum(c["priorities"].get("high", 0) for c in chapters),
         "medium_priority": sum(c["priorities"].get("medium", 0) for c in chapters),
+        "source_fidelity_review_segments": len(review),
+        "orthographic_only_segments": sum(
+            bool(s["orthographic_variants"]) and not s["human_check_needed"]
+            for c in chapters for s in c["segments"]
+        ),
     }
     report = {
         "status": "UNREVIEWED_AUTOMATED_INSPECTION_ONLY",
@@ -212,7 +236,10 @@ def audit(source_root: Path, drafts: Path, output: Path,
         "ASR receives only audio. Even low estimated WER does not establish that spoken text is complete.",
         "Listen to all six recordings against their original manuscripts.", "",
         f"Total phrases: {summary['segments']}. High-priority: {summary['high_priority']}. "
-        f"Medium-priority: {summary['medium_priority']}.", "",
+        f"Medium-priority: {summary['medium_priority']}. "
+        f"All meaningful ASR discrepancies: {summary['source_fidelity_review_segments']}.", "",
+        "Spelling-only changes are retained in JSON but do not raise review priority.",
+        "Phrases flagged here are listening targets, not confirmed audio errors.", "",
     ]
     for row in sorted(review, key=lambda x: (
         x["priority"] != "high", -x["word_error_rate"], x["slug"], x["segment"]
@@ -220,9 +247,12 @@ def audit(source_root: Path, drafts: Path, output: Path,
         lines.extend([
             f"## {row['slug']} / phrase {row['segment']} / "
             f"{row['start_seconds']:.1f}–{row['end_seconds']:.1f}s",
-            f"Priority: {row['priority']} — approximate WER {row['word_error_rate']:.1%}",
+            f"Priority: {row['priority']} — approximate raw WER {row['word_error_rate']:.1%}; "
+            f"content-edit estimate {row['content_edit_ratio']:.1%}",
             f"**Reference:** {row['reference']}",
             f"**ASR heard:** {row['recognized'] or '(no recognized words)'}",
+            "Candidate content differences: " + json.dumps(
+                row["content_mismatches"], ensure_ascii=False),
             "Critical mismatches: " + json.dumps(row["critical_mismatches"], ensure_ascii=False)
             if row["critical_mismatches"] else "", "",
         ])
