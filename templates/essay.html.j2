@@ -20,6 +20,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../styles.css">
   <script src="../reader.js" defer></script>
+  <script src="../device-narration.js" defer></script>
 </head>
 <body data-essay-slug="{{ essay.slug }}">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -56,6 +57,23 @@
           <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
         </select></label>
       </div>
+      {% else %}
+      <section class="device-narration" data-device-narration hidden aria-label="Listen with your browser voice">
+        <p class="device-narration__heading">Listen</p>
+        <p class="device-narration__description">Browser voice · availability and quality vary; some voices use online services.</p>
+        <div class="device-narration__controls">
+          <button type="button" data-speech-play>Play</button>
+          <button type="button" data-speech-pause disabled>Pause</button>
+          <button type="button" data-speech-stop disabled>Stop</button>
+          <button type="button" data-speech-previous disabled aria-label="Previous paragraph">Previous</button>
+          <button type="button" data-speech-next aria-label="Next paragraph">Next</button>
+        </div>
+        <div class="device-narration__options">
+          <label>Speed <select data-speech-rate aria-label="Browser narration speed"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+          <label>Voice <select data-speech-voice aria-label="Browser narration voice"><option value="">Browser default</option></select></label>
+        </div>
+        <p class="device-narration__status" data-speech-status role="status" aria-live="polite"></p>
+      </section>
       {% endif %}
     </section>
     <div class="reading-progress" aria-hidden="true"><span></span></div>

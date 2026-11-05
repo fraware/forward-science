@@ -34,7 +34,7 @@ def preview_root(tmp_path: Path) -> Path:
     (root / "content" / "essays.json").write_bytes((ROOT / "content" / "essays.json").read_bytes())
     for template in (ROOT / "templates").iterdir():
         (root / "templates" / template.name).write_bytes(template.read_bytes())
-    for asset in ("styles.css", "favicon.svg", "reader.js"):
+    for asset in ("styles.css", "favicon.svg", "reader.js", "device-narration.js"):
         (root / asset).write_bytes((ROOT / asset).read_bytes())
     (root / "content" / "landmarks.json").write_bytes((ROOT / "content" / "landmarks.json").read_bytes())
     (root / "content" / "audio.json").write_bytes((ROOT / "content" / "audio.json").read_bytes())
@@ -149,7 +149,7 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     source = tmp_path / "source"
     shutil.copytree(ROOT / "content", source / "content")
     shutil.copytree(ROOT / "templates", source / "templates")
-    for asset in ("styles.css", "favicon.svg", "reader.js"):
+    for asset in ("styles.css", "favicon.svg", "reader.js", "device-narration.js"):
         shutil.copy2(ROOT / asset, source / asset)
     slug = "scientific-loop"
     media = source / "media" / f"{slug}.mp3"
@@ -188,3 +188,17 @@ def test_public_site_has_no_offline_downloads(tmp_path: Path) -> None:
         assert "downloads/forward-science." not in content
         soup = BeautifulSoup(content, "html.parser")
         assert not soup.select(".download-editions, .chapter-download")
+
+
+def test_browser_narration_is_progressively_enhanced(tmp_path: Path) -> None:
+    """The browser-voice option is opt-in and separate from reviewed recordings."""
+    out = tmp_path / "spoken"
+    module.build(ROOT, out, "https://example.org/site", strict=True)
+    assert (out / "device-narration.js").is_file()
+    for essay in module.load_essays(ROOT):
+        page = BeautifulSoup((out / essay["slug"] / "index.html").read_text(), "html.parser")
+        assert page.select_one('script[src="../device-narration.js"]') is not None
+        assert page.select_one('[data-device-narration][hidden]') is not None
+        assert page.select_one('[data-speech-play]') is not None
+        assert page.select_one('[data-speech-status][role="status"]') is not None
+        assert page.select_one('article[aria-label="Full essay"]') is not None
