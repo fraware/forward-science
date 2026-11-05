@@ -34,8 +34,10 @@ def preview_root(tmp_path: Path) -> Path:
     (root / "content" / "essays.json").write_bytes((ROOT / "content" / "essays.json").read_bytes())
     for template in (ROOT / "templates").iterdir():
         (root / "templates" / template.name).write_bytes(template.read_bytes())
-    for asset in ("styles.css", "favicon.svg"):
+    for asset in ("styles.css", "favicon.svg", "reader.js"):
         (root / asset).write_bytes((ROOT / asset).read_bytes())
+    (root / "content" / "landmarks.json").write_bytes((ROOT / "content" / "landmarks.json").read_bytes())
+    (root / "content" / "audio.json").write_bytes((ROOT / "content" / "audio.json").read_bytes())
     return root
 
 

@@ -90,8 +90,10 @@ def test_end_to_end_export_to_full_site(tmp_path: Path) -> None:
         (dest / "content" / name).write_bytes((ROOT / "content" / name).read_bytes())
     for template in (ROOT / "templates").iterdir():
         (dest / "templates" / template.name).write_bytes(template.read_bytes())
-    for asset in ("styles.css", "favicon.svg"):
+    for asset in ("styles.css", "favicon.svg", "reader.js"):
         (dest / asset).write_bytes((ROOT / asset).read_bytes())
+    for name in ("landmarks.json", "audio.json"):
+        (dest / "content" / name).write_bytes((ROOT / "content" / name).read_bytes())
     archive = make_synthetic_export(tmp_path)
     run_import = module.run(archive, dest, apply=True)
     assert len(run_import) == 6
@@ -138,8 +140,10 @@ def test_strict_build_detects_changed_imported_text(tmp_path: Path) -> None:
     (dest / "content" / "essays.json").write_bytes((ROOT / "content" / "essays.json").read_bytes())
     for t in (ROOT / "templates").iterdir():
         (dest / "templates" / t.name).write_bytes(t.read_bytes())
-    for a in ("styles.css", "favicon.svg"):
+    for a in ("styles.css", "favicon.svg", "reader.js"):
         (dest / a).write_bytes((ROOT / a).read_bytes())
+    for name in ("landmarks.json", "audio.json"):
+        (dest / "content" / name).write_bytes((ROOT / "content" / name).read_bytes())
     module.run(make_synthetic_export(tmp_path), dest, apply=True)
     body = dest / "content" / "essays" / "forward-science.html"
     body.write_text(body.read_text(encoding="utf-8") + "<p>Modified after validation.</p>")
