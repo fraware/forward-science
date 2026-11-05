@@ -1,0 +1,93 @@
+name: Audit unreviewed narration with independent ASR
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful six-essay draft run ID; defaults to latest on main
+        required: false
+        type: string
+  workflow_run:
+    workflows: [Produce six UNREVIEWED narration drafts]
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/narration-asr-audit.yml
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install independent transcription runtime
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-build.txt
+          python -m pip install --disable-pip-version-check faster-whisper==1.2.1
+      - name: Download a successful six-essay draft artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TRIGGER_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPLICIT_RUN_ID: ${{ inputs.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${TRIGGER_RUN_ID:-}" ]]; then
+            RUN_ID="$TRIGGER_RUN_ID"
+          elif [[ -n "${EXPLICIT_RUN_ID:-}" ]]; then
+            RUN_ID="$EXPLICIT_RUN_ID"
+          else
+            RUN_ID="$(gh run list --workflow narration-drafts.yml --branch main \
+              --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          fi
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo 'Invalid run ID' >&2; exit 1; }
+          RUN_BRANCH="$(gh api "repos/${GH_REPO}/actions/runs/${RUN_ID}" --jq .head_branch)"
+          RUN_STATUS="$(gh api "repos/${GH_REPO}/actions/runs/${RUN_ID}" --jq .conclusion)"
+          [[ "$RUN_BRANCH" == 'main' && "$RUN_STATUS" == 'success' ]] || {
+            echo 'Expected a successful main-branch narration workflow' >&2; exit 1;
+          }
+          mkdir -p narration-input
+          gh run download "$RUN_ID" --name FOR-EDITORIAL-REVIEW-ONLY-six-narrations --dir narration-input
+          printf 'NARRATION_RUN_ID=%s\n' "$RUN_ID" >> "$GITHUB_ENV"
+      - name: Resolve and pin the independent ASR model revision
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import model_info, snapshot_download
+          repo_id='Systran/faster-whisper-small.en'
+          revision=model_info(repo_id).sha
+          path=snapshot_download(repo_id=repo_id,revision=revision,
+              allow_patterns=['config.json','model.bin','tokenizer.json','vocabulary.txt'])
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as handle:
+              handle.write('ASR_MODEL_PATH='+str(path)+'\n')
+              handle.write('ASR_MODEL_REVISION='+revision+'\n')
+          print('Pinned independent ASR model commit:',revision)
+          PY
+      - name: Independent audio-only transcription and source comparison
+        env:
+          OMP_NUM_THREADS: '4'
+        run: |
+          python -u scripts/audit_narration_asr.py --source-root . \
+            --drafts narration-input --output asr-review --model "$ASR_MODEL_PATH"
+          printf 'Draft run: %s\nASR model revision: %s\n' \
+            "$NARRATION_RUN_ID" "$ASR_MODEL_REVISION" \
+            > asr-review/ASR-PROVENANCE.txt
+          test -s asr-review/HUMAN_LISTENING_QUEUE.md
+      - name: Upload review evidence only — never approved recordings
+        uses: actions/upload-artifact@v4
+        with:
+          name: UNREVIEWED-independent-ASR-QA
+          path: asr-review/
+          retention-days: 30
+          if-no-files-found: error
