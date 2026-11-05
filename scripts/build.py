@@ -184,7 +184,7 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
             base_url=base_url,
         )
         (page / "index.html").write_text(html, encoding="utf-8")
-    for filename in ("styles.css", "favicon.svg", "reader.js"):
+    for filename in ("styles.css", "favicon.svg", "reader.js", "device-narration.js"):
         shutil.copy2(root / filename, output / filename)
     for essay in essays:
         if essay["audio"]:

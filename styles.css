@@ -195,3 +195,20 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 @media print { .reading-tools, .reading-progress, .continue-reading { display: none !important; } }
 
 /* Downloadable editions belong to the series, not individual source bodies. */
+
+/* Progressive browser-voice listening; hidden entirely if unsupported. */
+.device-narration[hidden] { display: none; }
+.device-narration { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 20px; }
+.device-narration__heading { font: 600 13px/1.5 var(--sans); margin: 0 0 6px; }
+.device-narration__description { color: var(--muted); font: 12px/1.6 var(--sans); margin: 0 0 17px; }
+.device-narration__controls { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.device-narration__controls button { cursor: pointer; border: 1px solid var(--line); border-radius: 3px; background: transparent; color: var(--ink); font: 500 12px/1.3 var(--sans); min-height: 36px; padding: 8px 11px; }
+.device-narration__controls button[data-speech-play] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.device-narration__controls button:disabled { opacity: .42; cursor: default; }
+.device-narration__controls button:focus-visible, .device-narration__options select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.device-narration__options { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 16px; }
+.device-narration__options label { color: var(--muted); font: 12px/1.4 var(--sans); }
+.device-narration__options select { margin-left: 5px; max-width: 240px; border: 1px solid var(--line); border-radius: 2px; background: var(--paper); color: var(--ink); font: inherit; padding: 5px 6px; }
+.device-narration__status { color: var(--muted); font: 12px/1.5 var(--sans); min-height: 1.5em; margin: 13px 0 0; }
+.prose p.is-being-narrated { background: rgba(73, 88, 70, .065); border-radius: 2px; }
+@media print { .device-narration { display: none !important; } }

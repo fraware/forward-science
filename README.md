@@ -121,3 +121,11 @@ Navigation landmarks are newly authored editorial aids, not reproduced section h
 The website intentionally contains no offline-download section or chapter download controls. The strict GitHub Pages build excludes PDF, EPUB and Markdown artifacts and removes old `site/downloads/` files from a reused local build directory. The separate source-verified exporter remains available for private publication work with `python scripts/export_editions.py --out /path/outside/site`. Generated files must remain outside `site/` to avoid accidental public deployment. No private Substack subscriber data is included.
 
 For a future narration, run `python scripts/prepare_narration.py --out narration-work` locally. The command generates six complete UTF-8 manuscripts, paragraph-bounded narration chunks and an integrity manifest. This produces **text only**. Recordings have yet to be produced, reviewed and added to the checksum-gated audio manifest. The resulting manuscripts should be reviewed by a narrator or used with a connected voice-production provider; voice quality, scientific pronunciation and chapter completeness need listening checks before any audio is published.
+
+## Browser-voice listening
+
+The site presents an optional **Listen** interface in browsers that support Web Speech synthesis and lack an approved MP3 recording for the essay. The browser supplies the voice. Available voices, their pronunciation and reliability differ by device, and some browser voices use online services. Browser narration is clearly distinguished from an editorially reviewed recording.
+
+Playback starts only on an explicit Play action. Readers choose speed and browser voice, pause and resume at short phrase boundaries, or move through original essay paragraphs. Position is stored optionally in browser-local storage; failures to access storage leave listening functional. No website-operated audio service or tracking is involved. Unsupported browsers retain the original reading experience with the control hidden. A reviewed MP3 recording, once available and SHA-256 validated, supersedes browser narration for its essay.
+
+Automated checks use mock speech engines; real voice quality and background playback on phones remain external acceptance criteria.
