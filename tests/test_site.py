@@ -138,3 +138,33 @@ def test_audio_is_not_advertised_without_recordings(tmp_path: Path) -> None:
         text = (tmp_path / "no-audio" / essay["slug"] / "index.html").read_text()
         assert 'class="audio-edition"' not in text
         assert "<audio " not in text
+
+
+def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
+    """Only a checksum-verified recording may appear in the public player."""
+    import hashlib
+    import json
+    import shutil
+
+    source = tmp_path / "source"
+    shutil.copytree(ROOT / "content", source / "content")
+    shutil.copytree(ROOT / "templates", source / "templates")
+    for asset in ("styles.css", "favicon.svg", "reader.js"):
+        shutil.copy2(ROOT / asset, source / asset)
+    slug = "scientific-loop"
+    media = source / "media" / f"{slug}.mp3"
+    media.parent.mkdir()
+    # The fixture deliberately uses inert bytes; it validates the release gate,
+    # not MP3 decoding or listening quality.
+    data = b"sample-audio-fixture"
+    media.write_bytes(data)
+    manifest = {slug: {"path": f"media/{slug}.mp3", "sha256": hashlib.sha256(data).hexdigest()}}
+    (source / "content" / "audio.json").write_text(json.dumps(manifest), encoding="utf-8")
+    site = tmp_path / "site"
+    module.build(source, site, None, strict=True)
+    page = BeautifulSoup((site / slug / "index.html").read_text(), "html.parser")
+    assert page.select_one("audio[src='../media/scientific-loop.mp3']") is not None
+    assert (site / "media" / f"{slug}.mp3").read_bytes() == data
+    media.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="Audio checksum mismatch"):
+        module.build(source, tmp_path / "invalid", None, strict=True)
