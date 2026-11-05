@@ -48,11 +48,19 @@
   if (prior?.slug === slug && prior.paragraph && document.getElementById(prior.paragraph)) {
     resume.hidden = false;
     resume.addEventListener("click", () => {
+      readingStarted = true;
       document.getElementById(prior.paragraph)?.scrollIntoView({ behavior: "smooth", block: "start" });
       resume.hidden = true;
+      // The ensuing scroll events track the new position. An eager update
+      // here would record the heading viewport before scrolling completes.
     });
   }
 
+  // Initial rendering may intersect the first paragraph on tall monitors.
+  // Do not erase an existing bookmark before an intentional reading action.
+  let readingStarted = window.scrollY > 0 ||
+    (/^#p-\d{2,3}$/.test(window.location.hash) &&
+      Boolean(document.getElementById(window.location.hash.slice(1))));
   let lastParagraph = "";
   let ticking = false;
   const update = () => {
@@ -62,7 +70,7 @@
     const position = window.scrollY + window.innerHeight * 0.38;
     const fraction = Math.min(1, Math.max(0, (position - top) / Math.max(1, bottom - top)));
     if (track) track.style.width = (fraction * 100).toFixed(1) + "%";
-    if (position < top || paragraphs.length === 0) return;
+    if (!readingStarted || position < top || paragraphs.length === 0) return;
     let current = paragraphs[0];
     for (const p of paragraphs) {
       if (p.getBoundingClientRect().top <= window.innerHeight * 0.38) current = p;
@@ -76,7 +84,10 @@
   const schedule = () => {
     if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
   };
-  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("scroll", () => {
+    readingStarted = true;
+    schedule();
+  }, { passive: true });
   window.addEventListener("resize", schedule);
   schedule();
 

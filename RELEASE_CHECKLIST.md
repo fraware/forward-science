@@ -23,6 +23,7 @@ The six-essay publication is imported from the author export and verified agains
 - [x] Independently retrieve generated public assets via GitHub Actions and compare delivered bytes, including removed-download 404 checks (runs 41969274869 and 42119598774).
 - [x] Fail closed on stale MP3s, unexpected files, and symlinks in a reused generated publication directory.
 - [ ] Complete physical-device accessibility and narration playback acceptance, including iOS and Android.
+- [ ] Confirm dedicated Chromium browser-regression workflow; its virtual speech transport and viewport emulation do not establish physical-device acceptance.
 - [ ] Check canonical URLs, sitemap, indexability and external preview metadata against final domain.
 
 ## P1 — distribution
