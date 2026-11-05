@@ -11,7 +11,7 @@ A typography-first, dependency-free static website for the six Forward Science p
 - The original essay prose is **never paraphrased by the importer**. Permitted HTML elements are retained and active content is removed; a text-equivalence check fails closed on changed prose. The strict build checks each imported body against its recorded SHA-256 hash.
 - The original export contained unrelated posts, subscriber information, and delivery analytics. None of those private files were copied into this project. Only six sanitized article bodies and their bounded provenance metadata are included.
 - The importer and strict deployment workflow refuse to pass partial or ambiguous imports as complete texts. Deployment runs on pushes to `main` and by manual dispatch; continuous integration runs on pushes and pull requests.
-- **Publication status:** The complete publication is committed to `fraware/forward-science`. A GitHub Pages deployment job completed successfully on November 3, 2026 (UTC). Independent HTTP inspection, live-Substack paragraph comparison, and custom-domain selection remain open.
+- **Publication status:** The complete publication is committed to `fraware/forward-science`. A GitHub Pages deployment job completed successfully on November 3, 2026 (UTC). The GitHub Pages public HTTP release was independently verified in deployment run 41969274869. Live-Substack paragraph comparison and custom-domain selection remain open.
 
 ## Project layout
 
@@ -36,7 +36,7 @@ python scripts/build.py
 python -m http.server --directory site 8000
 ```
 
-Visit `http://localhost:8000`. The site itself has no JavaScript, analytics, external fonts or runtime dependencies.
+Visit `http://localhost:8000`. The website includes optional local-state reader controls and browser speech in dependency-free JavaScript; the six essays remain readable with JavaScript disabled. There are no analytics, remote fonts, accounts, or server-side application requirements.
 
 ## Import the exact six essays
 
@@ -71,7 +71,7 @@ The first command verifies all six texts in dry-run mode. The second writes sani
 - Canonical URLs default to `https://fraware.github.io/forward-science`. To use a verified custom domain, set the optional Actions variable `SITE_BASE_URL` to its HTTPS root and redeploy.
 - The Substack “Subscribe now” export footer is omitted only during rendering. The versioned imported article bodies and SHA-256 provenance remain unchanged.
 
-GitHub Actions reports a successful deployment. Independent HTTP inspection of the public address, a live Substack edition comparison, and final domain selection remain necessary before announcing the publication. Never commit subscriber exports or unrelated analytics.
+GitHub Actions reports a successful deployment. The public address was independently inspected and matched against every expected generated asset in GitHub Pages deployment run 41969274869; final Substack edition comparison and domain selection remain necessary before announcing the publication. Never commit subscriber exports or unrelated analytics.
 
 ### Search engine policy
 
@@ -149,9 +149,9 @@ or another accountable reviewer has listened to each full recording, compared
 it with the source manuscript, checked scientific pronunciations and sound
 quality, and confirmed distribution rights.
 
-A record under \`content/audio.json\` must contain:
+A record under `content/audio.json` must contain:
 
-\`\`\`json
+```json
 {
   "scientific-loop": {
     "path": "media/scientific-loop.mp3",
@@ -174,11 +174,11 @@ A record under \`content/audio.json\` must contain:
     }
   }
 }
-\`\`\`
+```
 
-Use the real voice type (\`human\` or \`synthetic\`) and record the actual
+Use the real voice type (`human` or `synthetic`) and record the actual
 provider and permission to redistribute the recordings. Never invent
-attestations. Run \`python scripts/verify_audio.py\`; a strict site build
+attestations. Run `python scripts/verify_audio.py`; a strict site build
 invokes the same verifier whenever a recording is listed. It checks SHA-256,
 the source narration manuscript, reviewer fields, one MP3 stream, plausible
 duration and audio format, and full-file FFmpeg decoding. FFmpeg and FFprobe
