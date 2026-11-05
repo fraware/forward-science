@@ -168,3 +168,23 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     media.write_bytes(b"tampered")
     with pytest.raises(ValueError, match="Audio checksum mismatch"):
         module.build(source, tmp_path / "invalid", None, strict=True)
+
+
+def test_public_site_has_no_offline_downloads(tmp_path: Path) -> None:
+    """Public pages and deployment artifacts never expose offline editions."""
+    import shutil
+
+    output = tmp_path / "site"
+    legacy = output / "downloads"
+    legacy.mkdir(parents=True)
+    (legacy / "forward-science.pdf").write_bytes(b"old-version")
+    essays = module.build(ROOT, output, "https://example.org/forward-science", strict=True)
+    assert len(essays) == 6
+    assert not legacy.exists()
+    for page in output.rglob("*.html"):
+        content = page.read_text(encoding="utf-8")
+        assert "Read offline" not in content
+        assert "Complete collection" not in content
+        assert "downloads/forward-science." not in content
+        soup = BeautifulSoup(content, "html.parser")
+        assert not soup.select(".download-editions, .chapter-download")
