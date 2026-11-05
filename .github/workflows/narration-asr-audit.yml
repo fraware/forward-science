@@ -33,7 +33,7 @@ jobs:
       - name: Install independent transcription runtime
         run: |
           python -m pip install --disable-pip-version-check -r requirements-build.txt
-          python -m pip install --disable-pip-version-check faster-whisper==1.2.1
+          python -m pip install --disable-pip-version-check faster-whisper==1.2.1 av==18.1.0
       - name: Download a successful six-essay draft artifact
         env:
           GH_TOKEN: ${{ github.token }}
@@ -60,6 +60,19 @@ jobs:
           mkdir -p narration-input
           gh run download "$RUN_ID" --name FOR-EDITORIAL-REVIEW-ONLY-six-narrations --dir narration-input
           printf 'NARRATION_RUN_ID=%s\n' "$RUN_ID" >> "$GITHUB_ENV"
+      - name: Smoke-test the pinned decoder on a real narration file
+        run: |
+          python - <<'PYAV'
+          import av
+          from faster_whisper.audio import decode_audio
+          from pathlib import Path
+          path = Path('narration-input/UNREVIEWED-forward-science.mp3')
+          assert path.is_file(), 'Narration artifact was not extracted'
+          audio = decode_audio(str(path), sampling_rate=16000)
+          assert len(audio) > 16000 * 30, 'MP3 decode returned inadequate audio'
+          print('Compatible PyAV:', av.__version__)
+          print('Decoded samples:', len(audio))
+          PYAV
       - name: Resolve and pin the independent ASR model revision
         run: |
           python - <<'PY'
