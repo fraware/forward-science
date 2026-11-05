@@ -281,3 +281,10 @@ This matters for local and custom-hosting builds even though GitHub Actions
 usually checks out into a clean runner. Public download editions remain
 excluded. CI includes regression tests covering stale-media withdrawal,
 unrecognized private files, symlink safety, and protected source paths.
+
+
+### Headless-browser release checks
+
+The separate `.github/workflows/browser-regression.yml` job exercises the complete, strictly built publication in real Chromium over a loopback HTTP server. It checks all seven pages at 320, 390, 768 and 1440 pixels, paragraph deep links, actual previous/next navigation, saved-reading recovery, local-only history clearing and no-JavaScript access. The browser-speech service is deliberately mocked for interaction tests: this establishes DOM behavior, not audio quality, native mobile speech behavior or screen-reader acceptance. Run locally with `python -m pip install pytest playwright==1.56.0`, `python -m playwright install chromium` and `python -m pytest -q browser/verify_reader.py`. No browser-test dependency is delivered to website visitors.
+
+The reader no longer overwrites a previous paragraph bookmark on initial render in a tall viewport. It updates the saved location only following deliberate scrolling, a valid paragraph deep link, a restored scrolled page or explicit Resume.
