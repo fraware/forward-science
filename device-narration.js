@@ -79,9 +79,16 @@
     } catch { return null; }
   };
   const saved = loadPosition();
-  let paragraphIndex = saved?.paragraph ?? 0;
-  let chunkIndex = saved?.chunk ?? 0;
-  let playbackState = saved ? "paused" : "idle";
+  // A direct section link is an explicit navigation choice and takes precedence
+  // over the older listening bookmark without changing the saved voice or rate.
+  function linkedParagraph() {
+    const hash = root.location?.hash || "";
+    return paragraphs.findIndex((paragraph) => hash === "#" + paragraph.element.id);
+  }
+  const deepLinkIndex = linkedParagraph();
+  let paragraphIndex = deepLinkIndex >= 0 ? deepLinkIndex : saved?.paragraph ?? 0;
+  let chunkIndex = deepLinkIndex >= 0 ? 0 : saved?.chunk ?? 0;
+  let playbackState = saved && deepLinkIndex < 0 ? "paused" : "idle";
   let generation = 0;
   let activeUtterance = null;
   let voices = [];
@@ -154,10 +161,16 @@
     };
     utterance.onerror = (event) => {
       if (ticket !== generation || activeUtterance !== utterance) return;
-      if (["canceled", "interrupted"].includes(event?.error)) return;
+      // Our own cancel operations invalidate the generation first. Any error
+      // still associated with the current utterance, including interruption
+      // or cancellation by the browser, must release the Play control.
       activeUtterance = null;
       playbackState = "paused";
-      report("Your browser could not continue. Try Resume or another voice.");
+      persist();
+      const reason = event?.error;
+      report(reason === "interrupted" || reason === "canceled"
+        ? "Narration interrupted. Select Resume to continue."
+        : "Your browser could not continue. Try Resume or another voice.");
       updateControls();
     };
     try {
@@ -251,11 +264,30 @@
     });
   }
   root.addEventListener("pagehide", () => {
-    if (playbackState === "playing") cancelCurrent();
+    // Browsers can retain this document in the back/forward cache. Canceling
+    // speech without updating state leaves Play disabled on restoration.
+    // Pause explicitly, retaining the current short-phrase boundary.
+    if (playbackState === "playing") pause();
   });
-  report(saved ? "Ready to resume — paragraph " + (paragraphIndex + 1)
+  root.addEventListener("hashchange", () => {
+    const selected = linkedParagraph();
+    if (selected < 0 || selected === paragraphIndex) return;
+    // A section jump changes the listening target but never initiates speech.
+    if (playbackState === "playing") {
+      cancelCurrent();
+      playbackState = "paused";
+    }
+    paragraphIndex = selected;
+    chunkIndex = 0;
+    persist();
+    report("Ready to listen — paragraph " + (paragraphIndex + 1)
+      + " of " + paragraphs.length);
+    updateControls();
+  });
+  report(saved && deepLinkIndex < 0 ? "Ready to resume — paragraph " + (paragraphIndex + 1)
     + " of " + paragraphs.length
-    : "Ready to listen — " + paragraphs.length + " paragraphs");
+    : "Ready to listen — paragraph " + (paragraphIndex + 1)
+      + " of " + paragraphs.length);
   updateControls();
   panel.hidden = false;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -23,7 +23,7 @@ test("speech chunks reconstruct the exact normalized text", () => {
   assert.throws(() => splitNarrationText("test", 12), RangeError);
 });
 
-function createPage({ supported = true, saved = null, storageDisabled = false } = {}) {
+function createPage({ supported = true, saved = null, storageDisabled = false, anchor = "" } = {}) {
   const elements = new Map();
   const el = (extra = {}) => Object.assign({
     textContent: "", value: "", disabled: false, hidden: false,
@@ -56,6 +56,7 @@ function createPage({ supported = true, saved = null, storageDisabled = false } 
     addEventListener() {},
   };
   const window = {
+    location: { hash: anchor },
     speechSynthesis: supported ? synth : undefined,
     SpeechSynthesisUtterance: supported ? function Utterance(text) { this.text = text; } : undefined,
     localStorage: {
@@ -63,7 +64,9 @@ function createPage({ supported = true, saved = null, storageDisabled = false } 
       setItem: (key, value) => { if (storageDisabled) throw Error("storage blocked"); storage.set(key, value); },
       removeItem: (key) => { if (storageDisabled) throw Error("storage blocked"); storage.delete(key); },
     },
-    addEventListener() {},
+    events: new Map(),
+    addEventListener(name, callback) { this.events.set(name, callback); },
+    dispatch(name) { this.events.get(name)?.(); },
   };
   const document = {
     body: { dataset: { essaySlug: "scientific-loop" } },
@@ -75,7 +78,7 @@ function createPage({ supported = true, saved = null, storageDisabled = false } 
     createElement: () => el(),
   };
   vm.runInNewContext(source, { window, document });
-  return { panel, elements, synth, storage };
+  return { panel, elements, synth, storage, window };
 }
 
 test("unsupported browsers receive no misleading listening controls", () => {
@@ -118,4 +121,87 @@ test("blocked local storage does not prevent playback", () => {
   assert.equal(ui.synth.spoken.length, 1);
   ui.elements.get("stop").click();
   assert.equal(ui.elements.get("play").disabled, false);
+});
+
+
+test("spontaneous browser interruption releases the Play control and keeps position", () => {
+  for (const reason of ["interrupted", "canceled", "audio-busy"]) {
+    const ui = createPage();
+    ui.elements.get("play").click();
+    const interruptedUtterance = ui.synth.spoken.at(-1);
+    interruptedUtterance.onerror({ error: reason });
+    assert.equal(ui.elements.get("play").disabled, false);
+    assert.equal(ui.elements.get("play").textContent, "Resume");
+    assert.equal(ui.elements.get("pause").disabled, true);
+    assert.match(ui.elements.get("status").textContent, /Resume/);
+    const saved = JSON.parse(ui.storage.get("forward-science:device-narration:v1:scientific-loop"));
+    assert.equal(saved.paragraph, 0);
+    assert.equal(saved.chunk, 0);
+    ui.elements.get("play").click();
+    assert.equal(ui.synth.spoken.length, 2);
+  }
+});
+
+test("back-forward cache pagehide pauses speech and ignores stale completion", () => {
+  const ui = createPage();
+  ui.elements.get("play").click();
+  const oldUtterance = ui.synth.spoken.at(-1);
+  const cancellations = ui.synth.cancelled;
+  ui.window.dispatch("pagehide");
+  assert.equal(ui.synth.cancelled, cancellations + 1);
+  assert.equal(ui.elements.get("play").textContent, "Resume");
+  assert.equal(ui.elements.get("play").disabled, false);
+  assert.equal(ui.elements.get("pause").disabled, true);
+  assert.match(ui.elements.get("status").textContent, /Paused/);
+  oldUtterance.onend();  // Late callback from a canceled utterance must be inert.
+  assert.equal(ui.synth.spoken.length, 1);
+  ui.elements.get("play").click();
+  assert.equal(ui.synth.spoken.length, 2);
+  assert.equal(ui.synth.spoken[1].text, oldUtterance.text);
+});
+
+test("pagehide leaves already paused and idle narration unchanged", () => {
+  const idle = createPage();
+  idle.window.dispatch("pagehide");
+  assert.equal(idle.synth.cancelled, 0);
+  assert.equal(idle.elements.get("play").textContent, "Play");
+
+  const paused = createPage();
+  paused.elements.get("play").click();
+  paused.elements.get("pause").click();
+  const cancelled = paused.synth.cancelled;
+  paused.window.dispatch("pagehide");
+  assert.equal(paused.synth.cancelled, cancelled);
+  assert.equal(paused.elements.get("play").textContent, "Resume");
+});
+
+
+test("deep links take precedence over a saved narration position", () => {
+  const ui = createPage({
+    anchor: "#p-03",
+    saved: { paragraph: 0, chunk: 0, rate: 1.5, voice: "test:voice" },
+  });
+  assert.equal(ui.elements.get("play").textContent, "Play");
+  assert.equal(ui.elements.get("rate").value, "1.5");
+  assert.match(ui.elements.get("status").textContent, /paragraph 3 of 3/);
+  ui.elements.get("play").click();
+  assert.equal(ui.synth.spoken.at(-1).text, "A final paragraph and conclusion.");
+});
+
+test("section navigation pauses and retargets speech without autoplay", () => {
+  const ui = createPage();
+  ui.elements.get("play").click();
+  const firstUtterance = ui.synth.spoken[0];
+  const countBefore = ui.synth.spoken.length;
+  ui.window.location.hash = "#p-02";
+  ui.window.dispatch("hashchange");
+  assert.equal(ui.elements.get("play").textContent, "Resume");
+  assert.equal(ui.synth.spoken.length, countBefore);
+  firstUtterance.onend();
+  assert.equal(ui.synth.spoken.length, countBefore);
+  ui.elements.get("play").click();
+  assert.equal(ui.synth.spoken.at(-1).text, "Second paragraph about scientific evidence.");
+  ui.window.location.hash = "#irrelevant";
+  ui.window.dispatch("hashchange");
+  assert.equal(ui.elements.get("play").disabled, true);
 });
