@@ -197,3 +197,15 @@ Full-length synthetic draft production now applies FFmpeg loudness normalization
 ### Independent master-quality check for definitive recordings
 
 The strict public MP3 gate independently measures each approved file with FFmpeg using EBU R128 loudness analysis. It rejects recordings outside -21 to -15 LUFS, true peak above -1 dBTP, or unexplained silent gaps of four seconds or longer. Tests exercise real MP3 decoding and real loudness measurement. These are technical consistency checks alongside, not substitutes for, complete human listening and text fidelity review.
+
+
+### Voice artifact reproducibility and disclosure
+
+The six-essay synthetic candidate generator verifies the exact SHA-256 values
+of the Kokoro ONNX backbone and the v1.0 voice pack used in the successful
+initial and remastered runs. Updated upstream model files require an explicit
+reviewed checksum change before synthesis. The website's native MP3 player
+identifies an approved edition as **synthetic** or **human** narration, with its
+actual voice name and provider, and presents the essay as its written transcript.
+This disclosure applies only if a recording passes the separate strict-release
+gate; the public audio manifest currently remains empty.

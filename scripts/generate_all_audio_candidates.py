@@ -14,6 +14,25 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+# Pin the exact model and voice pack used for the verified six-essay drafts.
+# Hashes come from the successful Actions model-provenance record.
+KOKORO_MODEL_SHA256 = "beb0d1848dee9a49da392cc3df26958d46cfa35d321edf434f52949153f0df3a"
+KOKORO_VOICES_SHA256 = "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d"
+
+
+def verify_model_assets(model: Path, voices: Path) -> None:
+    """Fail closed if either downloaded release artifact differs from its pin."""
+    for file, expected in ((model, KOKORO_MODEL_SHA256), (voices, KOKORO_VOICES_SHA256)):
+        if not file.is_file() or file.is_symlink():
+            raise ValueError(f"Missing or unsafe Kokoro asset: {file.name}")
+        digest = hashlib.sha256()
+        with file.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        if digest.hexdigest() != expected:
+            raise ValueError(f"Kokoro release-asset checksum mismatch: {file.name}")
+
+
 
 def segments_for(text: str, max_chars: int = 850) -> list[tuple[str, bool]]:
     """Return source-faithful speech chunks and paragraph-break markers."""
@@ -130,8 +149,7 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, li
     import soundfile as sf
     from kokoro_onnx import Kokoro
 
-    if not model.is_file() or not voices.is_file():
-        raise FileNotFoundError("The official ONNX model and voice tensors must be available")
+    verify_model_assets(model, voices)
     output.mkdir(parents=True, exist_ok=True)
     manifest = compile_narration(root, output / "manuscripts")
     kokoro = Kokoro(str(model), str(voices))
