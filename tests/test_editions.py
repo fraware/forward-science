@@ -34,12 +34,12 @@ def test_complete_editions_are_valid_and_linked(tmp_path: Path) -> None:
         assert archive.namelist()[0] == "mimetype"
         assert archive.getinfo("mimetype").compress_type == zipfile.ZIP_STORED
         assert archive.read("mimetype") == b"application/epub+zip"
-        nav = BeautifulSoup(archive.read("EPUB/nav.xhtml"), "xml")
+        nav = BeautifulSoup(archive.read("EPUB/nav.xhtml"), "html.parser")
         assert len(nav.find_all("li")) == 6
         for essay in exporter.chapters(ROOT):
             xhtml = archive.read(f'EPUB/{essay["slug"]}.xhtml')
             ET.fromstring(xhtml)
-            soup = BeautifulSoup(xhtml, "xml")
+            soup = BeautifulSoup(xhtml, "html.parser")
             paragraphs = soup.find_all("p")
             assert len(paragraphs) >= 12
             assert "Subscribe now" not in soup.get_text(" ", strip=True)
