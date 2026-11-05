@@ -158,6 +158,17 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
         raise ValueError("Refusing to publish incomplete chapters: " + ", ".join(incomplete))
     if strict:
         validate_provenance(root, essays)
+        if any(essay["audio"] for essay in essays):
+            # Release authorization is separate from file-hash verification:
+            # validate manuscript, accountable listening review and MP3 decoding.
+            import importlib.util
+            script = Path(__file__).with_name("verify_audio.py")
+            spec = importlib.util.spec_from_file_location("forward_science_audio_gate", script)
+            if spec is None or spec.loader is None:
+                raise ValueError("Missing MP3 release verifier")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            module.validate(root)
     env = Environment(
         loader=FileSystemLoader(str(root / "templates")),
         autoescape=select_autoescape(["html", "j2"]),

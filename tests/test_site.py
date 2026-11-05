@@ -161,13 +161,17 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     manifest = {slug: {"path": f"media/{slug}.mp3", "sha256": hashlib.sha256(data).hexdigest()}}
     (source / "content" / "audio.json").write_text(json.dumps(manifest), encoding="utf-8")
     site = tmp_path / "site"
-    module.build(source, site, None, strict=True)
+    # A synthetic byte sequence exercises only the existing path/hash gate.
+    # Strict builds must reject it as an unreviewed or undecodable recording.
+    module.build(source, site, None, strict=False)
+    with pytest.raises(ValueError, match="Suspicious MP3 size|listening review"):
+        module.build(source, tmp_path / "unreviewed", None, strict=True)
     page = BeautifulSoup((site / slug / "index.html").read_text(), "html.parser")
     assert page.select_one("audio[src='../media/scientific-loop.mp3']") is not None
     assert (site / "media" / f"{slug}.mp3").read_bytes() == data
     media.write_bytes(b"tampered")
     with pytest.raises(ValueError, match="Audio checksum mismatch"):
-        module.build(source, tmp_path / "invalid", None, strict=True)
+        module.build(source, tmp_path / "invalid", None, strict=False)
 
 
 def test_public_site_has_no_offline_downloads(tmp_path: Path) -> None:
