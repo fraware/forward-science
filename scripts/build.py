@@ -93,10 +93,11 @@ def load_essays(root: Path) -> list[dict]:
         e["landmarks"] = []
         for index, label in positions:
             if (not isinstance(index, int) or index <= previous_position
-                    or index >= paragraphs or not isinstance(label, str)
-                    or not label.strip() or len(label) > 90):
+                    or not isinstance(label, str) or not label.strip() or len(label) > 90
+                    or (e["complete"] and index >= paragraphs)):
                 raise ValueError(f"Invalid landmark: {e['slug']} at {index}")
-            e["landmarks"].append({"label": label, "anchor": f"p-{index+1:02d}"})
+            if e["complete"]:
+                e["landmarks"].append({"label": label, "anchor": f"p-{index+1:02d}"})
             previous_position = index
         e["audio"] = None
         recording = audio_manifest.get(e["slug"])
