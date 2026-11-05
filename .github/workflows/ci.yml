@@ -15,4 +15,5 @@ jobs:
       - run: python -m pip install -r requirements-build.txt pytest
       - run: node --check reader.js
       - run: python -m pytest -q
-      - run: python scripts/build.py
+      - run: python scripts/build.py --strict --base-url https://fraware.github.io/forward-science
+      - run: test -f site/downloads/forward-science.pdf && test -f site/downloads/forward-science.epub && test -f site/downloads/forward-science.md
