@@ -97,14 +97,14 @@ def test_ffmpeg_probe_and_decode_a_real_mp3_fixture(tmp_path):
     """Exercise the actual media toolchain, without pretending it is narration."""
     import subprocess
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
-        pytest.skip("FFmpeg/FFprobe unavailable on this test runner")
+        pytest.fail("FFmpeg and FFprobe must be available for audio release validation")
     path = tmp_path / "synthetic-tone.mp3"
     cmd = ["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i",
            "sine=frequency=440:duration=2", "-ar", "24000", "-ac", "1",
            "-codec:a", "libmp3lame", "-b:a", "64k", str(path)]
     completed = subprocess.run(cmd, capture_output=True, timeout=30)
     if completed.returncode != 0:
-        pytest.skip("Runner lacks an MP3 encoder; release still demands FFmpeg")
+        pytest.fail("Runner lacks an MP3 encoder required for the real media test")
     info = v.probe(path)
     assert info["streams"][0]["codec_name"] == "mp3"
     assert 1.9 <= float(info["format"]["duration"]) <= 2.2
