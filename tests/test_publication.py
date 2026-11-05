@@ -27,7 +27,7 @@ def mock_transport(site: Path, *, corrupt: str = "", missing: str = ""):
         relative = url.split("https://example.org/forward-science/", 1)[1]
         if relative.startswith("downloads/"):
             return 404, b"", {}
-        if relative == missing:
+        if missing and relative == missing:
             return 404, b"", {}
         if relative == "" or relative.endswith("/"):
             relative += "index.html"
