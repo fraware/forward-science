@@ -24,5 +24,7 @@ jobs:
       - run: node --check reader.js && node --check device-narration.js
       - run: node --test tests/test_device_narration.cjs
       - run: python -m pytest -q -rs
+      - name: Inventory original essay citations and verify link safety
+        run: python scripts/audit_references.py
       - run: python scripts/build.py --strict --base-url https://fraware.github.io/forward-science
       - run: test ! -e site/downloads && ! grep -R -E 'Read offline|downloads/forward-science[.](pdf|epub|md)' site --include='*.html'

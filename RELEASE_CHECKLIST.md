@@ -12,6 +12,8 @@ The six-essay publication is imported from the author export and verified agains
 - [ ] Manually compare each imported body with the latest live edition paragraph by paragraph.
 - [ ] Compare a freshly generated author export with the six committed editions using `scripts/import_substack.py --compare`; inspect all prose, links and export/provenance discrepancies. A snapshot comparison does not certify subsequent edits made on Substack.
 - [ ] Complete independent live-page review. GitHub-hosted audit runs received HTTP 403 from Substack on both API and HTML routes; recorded status is `unavailable`, distinct from detected text drift. The optional public-page workflow is manual-only.
+- [x] Produce an immutable-source, offline inventory of all 46 substantive links (32 distinct URLs) with paragraph anchors. This establishes completeness of link extraction, not evidence adequacy.
+- [ ] Review the source-claim relevance issues recorded in `docs/EDITORIAL_EVIDENCE_AUDIT.md`, including the sequencing-core mismatch and primary-source historical chronology.
 - [ ] Review footnotes, scientific citations, equations, images, media embeds, alt text and internal anchors in each chapter.
 - [ ] Decide whether to correct typographical errors in the source publications; preserve a traceable edition history if changes are made.
 

@@ -90,6 +90,10 @@ python -m pytest -q
 python scripts/build.py --strict  # now succeeds with all six imported texts
 ```
 
+## Editorial reference evidence
+
+`python scripts/audit_references.py --json /tmp/forward-science-reference-inventory.json` generates a read-only, offline inventory of all six source-verified essays. It indexes link labels, destinations, hostname and paragraph context, excludes the six Substack subscription footers, and fails on changed article hashes or malformed/unsafe links. The current corpus has 46 substantive hyperlinks to 32 distinct external URLs. These are **reference counts, not evidence-quality scores**. The systematic claim-source review and prioritized corrections are documented in [docs/EDITORIAL_EVIDENCE_AUDIT.md](docs/EDITORIAL_EVIDENCE_AUDIT.md). Factual changes remain separately gated by source-edition approval and updated provenance.
+
 ## Original publications
 
 - https://mateopetel.substack.com/p/forward-science
