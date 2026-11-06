@@ -52,6 +52,10 @@ A nineteenth-century hypothetical farmer and experimental result should be prese
 
 **Essay 01, paragraph 5.** A New York Times URL about Anthropic Mythos/Fable 5 accompanies the word “discussion.” Its article content could not be independently retrieved in the audit environment. Assess whether the linked reporting substantively supports the *AI-for-science access* claim. This remains a **review item**, not a confirmed mismatch.
 
+## Political-economy claim review
+
+The fourth chapter contains an institutional argument and several observational claims and forecasts. A [paragraph-by-paragraph claim register](POLITICAL_ECONOMY_CLAIM_REVIEW.md) now distinguishes all 23 substantive paragraphs by assertion type, evidentiary status and priority. It includes a bounded pilot-evaluation design, the NISO CRediT distinction between contribution documentation and authorship eligibility, and date-sensitive official sources. This is an editorial proposal; live publication content remains unchanged.
+
 ## Evidence and edition policy
 
 For each finding, reviewers should record the exact claim, the source title and date, its type (primary / academic / institutional / journalistic / sponsored / opinion), the claim it directly supports, and the remaining inference. A working URL proves availability only; a recognizable institution proves neither the specific proposition nor causality.

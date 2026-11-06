@@ -13,6 +13,8 @@ The six-essay publication is imported from the author export and verified agains
 - [ ] Compare a freshly generated author export with the six committed editions using `scripts/import_substack.py --compare`; inspect all prose, links and export/provenance discrepancies. A snapshot comparison does not certify subsequent edits made on Substack.
 - [ ] Complete independent live-page review. GitHub-hosted audit runs received HTTP 403 from Substack on both API and HTML routes; recorded status is `unavailable`, distinct from detected text drift. The optional public-page workflow is manual-only.
 - [x] Produce an immutable-source, offline inventory of all 46 substantive links (32 distinct URLs) with paragraph anchors. This establishes completeness of link extraction, not evidence adequacy.
+- [x] Produce a paragraph-level claim register for all 23 substantive paragraphs of the political-economy essay, distinguishing empirical observations, forecasts, governance proposals, and measurement claims. See `docs/POLITICAL_ECONOMY_CLAIM_REVIEW.md`. This documents the assessment, not editorial acceptance.
+- [ ] Adjudicate P0 claims in the political-economy review before claiming the essay has been independently fact-checked or revised.
 - [ ] Review the source-claim relevance issues recorded in `docs/EDITORIAL_EVIDENCE_AUDIT.md`, including the sequencing-core mismatch and primary-source historical chronology.
 - [ ] Review footnotes, scientific citations, equations, images, media embeds, alt text and internal anchors in each chapter.
 - [ ] Decide whether to correct typographical errors in the source publications; preserve a traceable edition history if changes are made.
