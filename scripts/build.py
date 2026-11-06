@@ -100,6 +100,7 @@ def load_essays(root: Path) -> list[dict]:
                 e["landmarks"].append({"label": label, "anchor": f"p-{index+1:02d}"})
             previous_position = index
         e["audio"] = None
+        e["audio_sha256"] = None
         e["audio_voice"] = None
         recording = audio_manifest.get(e["slug"])
         if recording is not None:
@@ -112,6 +113,7 @@ def load_essays(root: Path) -> list[dict]:
             if actual_sha != recording.get("sha256"):
                 raise ValueError(f"Audio checksum mismatch: {e['slug']}")
             e["audio"] = recording["path"]
+            e["audio_sha256"] = actual_sha
             voice = recording.get("voice")
             if isinstance(voice, dict):
                 # Strict publication validates attribution and rights separately.

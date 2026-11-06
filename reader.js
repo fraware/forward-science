@@ -89,27 +89,149 @@
   window.addEventListener("resize", schedule);
   schedule();
 
+  // The media player appears only for an approved, SHA-256 verified MP3.
+  // Resume markers are bound to the *recording*, never merely to its essay:
+  // a remastered/replaced recording must not inherit obsolete seek positions.
   const audio = document.querySelector("audio[data-audio-for]");
-  const speed = document.querySelector(".audio-speed");
   if (!audio) return;
+
+  const audioHash = audio.dataset.audioSha;
+  const rateKey = "forward-science:audio-rate:v1";
+  const speed = document.querySelector(".audio-speed");
+  const rewind = document.querySelector(".audio-skip-back");
+  const forward = document.querySelector(".audio-skip-forward");
+  const resumeAudio = document.querySelector(".audio-resume");
+  const feedback = document.querySelector(".audio-feedback");
+  const feedbackText = (message) => { if (feedback) feedback.textContent = message; };
+
+  // A missing/invalid version identifier means there is no safe resume state.
+  const hasVerifiedVersion = /^[a-f0-9]{64}$/.test(audioHash || "");
   const savedAudio = (() => {
-    try { return JSON.parse(localStorage.getItem(audioKey(slug)) || "null"); }
-    catch { return null; }
+    if (!hasVerifiedVersion) return null;
+    try {
+      const raw = localStorage.getItem(audioKey(slug));
+      const position = raw ? JSON.parse(raw) : null;
+      return position && position.sha256 === audioHash
+        && Number.isFinite(position.time) && position.time >= 0 ? position : null;
+    } catch { return null; }
   })();
+  const savedRate = (() => {
+    try { return Number(localStorage.getItem(rateKey)); }
+    catch { return NaN; }
+  })();
+  const speeds = [0.75, 1, 1.25, 1.5, 2];
+  if (speed && speeds.includes(savedRate)) speed.value = String(savedRate);
+  if (speed) audio.playbackRate = Number(speed.value) || 1;
+
+  const validDuration = () => Number.isFinite(audio.duration) && audio.duration > 0;
+  const seekTo = (seconds) => {
+    if (!validDuration() || !Number.isFinite(seconds)) return false;
+    audio.currentTime = Math.max(0, Math.min(audio.duration, seconds));
+    return true;
+  };
+  const formatTime = (seconds) => {
+    const whole = Math.max(0, Math.floor(seconds));
+    return Math.floor(whole / 60) + ":" + String(whole % 60).padStart(2, "0");
+  };
+  const storePosition = () => {
+    if (!hasVerifiedVersion || !Number.isFinite(audio.currentTime)
+        || !validDuration()) return;
+    store(audioKey(slug), {
+      sha256: audioHash,
+      time: Math.max(0, Math.min(audio.duration, audio.currentTime)),
+    });
+  };
+
+  // Persist no more frequently than one write per 5 seconds during playback.
+  // A pause or page exit records the exact current position.
+  let lastSavedBucket = -1;
+  audio.addEventListener("timeupdate", () => {
+    if (!Number.isFinite(audio.currentTime)) return;
+    const bucket = Math.floor(audio.currentTime / 5);
+    if (bucket !== lastSavedBucket) {
+      lastSavedBucket = bucket;
+      storePosition();
+    }
+  });
+  audio.addEventListener("pause", storePosition);
+  window.addEventListener("pagehide", storePosition);
+  audio.addEventListener("ended", () => {
+    store(audioKey(slug), { sha256: audioHash, time: 0 });
+    if (resumeAudio) resumeAudio.hidden = true;
+  });
+  audio.addEventListener("play", () => {
+    if (resumeAudio) resumeAudio.hidden = true;
+    feedbackText("");
+  });
+
+  const beginPlayback = () => {
+    try {
+      const attempt = audio.play();
+      if (attempt && typeof attempt.catch === "function") {
+        attempt.catch(() => feedbackText("Use the audio player's Play button to begin."));
+      }
+    } catch {
+      feedbackText("Use the audio player's Play button to begin.");
+    }
+  };
+
   audio.addEventListener("loadedmetadata", () => {
-    if (savedAudio && Number.isFinite(savedAudio.time) && Number.isFinite(audio.duration)
-        && savedAudio.time > 0 && savedAudio.time < audio.duration - 5) {
-      audio.currentTime = savedAudio.time;
+    const ready = validDuration();
+    if (rewind) rewind.disabled = !ready;
+    if (forward) forward.disabled = !ready;
+    if (resumeAudio) {
+      const resumable = ready && savedAudio && savedAudio.time > 12
+        && savedAudio.time < audio.duration - 12;
+      resumeAudio.hidden = !resumable;
+      if (resumable) resumeAudio.textContent = "Resume at " + formatTime(savedAudio.time);
     }
   }, { once: true });
-  audio.addEventListener("timeupdate", () => {
-    if (Number.isFinite(audio.currentTime) && audio.currentTime >= 0) {
-      store(audioKey(slug), { time: audio.currentTime });
+  audio.addEventListener("error", () => {
+    if (rewind) rewind.disabled = true;
+    if (forward) forward.disabled = true;
+    if (resumeAudio) resumeAudio.hidden = true;
+    feedbackText("This recording is unavailable. Try reloading the page.");
+  });
+
+  rewind?.addEventListener("click", () => {
+    if (seekTo(audio.currentTime - 15)) storePosition();
+  });
+  forward?.addEventListener("click", () => {
+    if (seekTo(audio.currentTime + 30)) storePosition();
+  });
+  resumeAudio?.addEventListener("click", () => {
+    if (savedAudio && seekTo(savedAudio.time)) {
+      resumeAudio.hidden = true;
+      storePosition();
+      beginPlayback(); // Initiated by an explicit user interaction.
     }
   });
-  audio.addEventListener("ended", () => store(audioKey(slug), { time: 0 }));
   speed?.addEventListener("change", () => {
     const chosen = Number(speed.value);
-    if ([0.75, 1, 1.25, 1.5, 2].includes(chosen)) audio.playbackRate = chosen;
+    if (!speeds.includes(chosen)) return;
+    audio.playbackRate = chosen;
+    try { localStorage.setItem(rateKey, String(chosen)); }
+    catch { /* Browser-local preferences are optional. */ }
   });
+
+  // Optional mobile lock-screen and headphone metadata; native controls remain
+  // the accessible source of truth, including on browsers without Media Session.
+  if (typeof navigator !== "undefined" && navigator.mediaSession
+      && typeof window.MediaMetadata === "function") {
+    try {
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title,
+        artist: "Mateo H. Petel",
+        album: "Forward Science",
+      });
+      const actions = {
+        seekbackward: (details) => seekTo(audio.currentTime - (details.seekOffset || 15)),
+        seekforward: (details) => seekTo(audio.currentTime + (details.seekOffset || 30)),
+      };
+      for (const [action, callback] of Object.entries(actions)) {
+        try { navigator.mediaSession.setActionHandler(action, callback); }
+        catch { /* Unsupported action on this browser. */ }
+      }
+    } catch { /* Media Session support is optional. */ }
+  }
 })();

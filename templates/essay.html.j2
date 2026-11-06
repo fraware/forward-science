@@ -52,10 +52,16 @@
         {% else %}
         <p class="audio-edition__description">The complete written transcript follows below.</p>
         {% endif %}
-        <audio controls preload="metadata" data-audio-for="{{ essay.slug }}" src="../{{ essay.audio }}">Your browser does not support audio playback. The complete transcript is below.</audio>
-        <label>Playback speed <select class="audio-speed" aria-label="Audio playback speed">
-          <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
-        </select></label>
+        <audio controls preload="metadata" data-audio-for="{{ essay.slug }}" data-audio-sha="{{ essay.audio_sha256 }}" src="../{{ essay.audio }}?v={{ essay.audio_sha256[:12] }}">Your browser does not support audio playback. The complete transcript is below.</audio>
+        <div class="audio-edition__tools">
+          <button type="button" class="audio-skip-back" aria-label="Rewind 15 seconds" disabled>−15 s</button>
+          <button type="button" class="audio-skip-forward" aria-label="Skip forward 30 seconds" disabled>+30 s</button>
+          <button type="button" class="audio-resume" hidden>Resume listening</button>
+          <label>Speed <select class="audio-speed" aria-label="Audio playback speed">
+            <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option>
+          </select></label>
+        </div>
+        <p class="audio-feedback" role="status" aria-live="polite"></p>
       </div>
       {% endif %}
     </section>

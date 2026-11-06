@@ -167,6 +167,129 @@ def test_no_browser_voice_or_copy_citation_even_if_supported(server_url, browser
     context.close()
 
 
+
+def test_audio_resume_skip_rate_and_completion_with_injected_media(server_url, browser):
+    """The public manifest stays empty; synthetic audio exists only inside Chromium."""
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto(server_url + "/scientific-loop/")
+    observed = page.evaluate("""async () => {
+      const slug = 'scientific-loop', sha = 'a'.repeat(64);
+      const key = 'forward-science:audio:v1:' + slug;
+      localStorage.setItem(key, JSON.stringify({sha256: sha, time: 75}));
+      const holder = document.createElement('section');
+      const audio = document.createElement('audio');
+      audio.dataset.audioFor = slug;
+      audio.dataset.audioSha = sha;
+      holder.append(audio);
+      const controls = {};
+      for (const [kind, name] of [
+          ['back', 'audio-skip-back'], ['forward', 'audio-skip-forward'],
+          ['resume', 'audio-resume']]) {
+        const button = document.createElement('button');
+        button.className = name;
+        button.disabled = kind !== 'resume';
+        button.hidden = kind === 'resume';
+        holder.append(button);
+        controls[kind] = button;
+      }
+      const speed = document.createElement('select');
+      speed.className = 'audio-speed';
+      for (const rate of ['1', '1.25']) {
+        const option = document.createElement('option');
+        option.value = rate;
+        option.textContent = rate;
+        speed.append(option);
+      }
+      holder.append(speed);
+      const feedback = document.createElement('p');
+      feedback.className = 'audio-feedback';
+      holder.append(feedback);
+      document.querySelector('.reading-tools').append(holder);
+      let clock = 0, played = 0;
+      Object.defineProperty(audio, 'duration', {get: () => 240});
+      Object.defineProperty(audio, 'currentTime', {
+        get: () => clock, set: value => { clock = value; }
+      });
+      audio.play = () => {
+        played++;
+        audio.dispatchEvent(new Event('play'));
+        return Promise.resolve();
+      };
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.onload = resolve;
+        script.onerror = reject;
+        script.src = '../reader.js?integration-audio=1';
+        document.body.append(script);
+      });
+      audio.dispatchEvent(new Event('loadedmetadata'));
+      const prompt = controls.resume.textContent;
+      const noAutoplay = played === 0 && clock === 0;
+      controls.resume.click();
+      const resumed = clock, playCount = played;
+      controls.back.click();
+      const rewound = clock;
+      controls.forward.click();
+      const forwarded = clock;
+      speed.value = '1.25';
+      speed.dispatchEvent(new Event('change'));
+      audio.dispatchEvent(new Event('pause'));
+      const saved = JSON.parse(localStorage.getItem(key));
+      audio.dispatchEvent(new Event('ended'));
+      const completed = JSON.parse(localStorage.getItem(key));
+      return {prompt, noAutoplay, resumed, playCount, rewound, forwarded,
+        playbackRate: audio.playbackRate, saved, completed,
+        preference: localStorage.getItem('forward-science:audio-rate:v1'),
+        resumeHidden: controls.resume.hidden};
+    }""")
+    assert observed["prompt"] == "Resume at 1:15"
+    assert observed["noAutoplay"] is True
+    assert observed["resumed"] == 75
+    assert observed["playCount"] == 1
+    assert observed["rewound"] == 60
+    assert observed["forwarded"] == 90
+    assert observed["saved"] == {"sha256": "a" * 64, "time": 90}
+    assert observed["completed"] == {"sha256": "a" * 64, "time": 0}
+    assert observed["playbackRate"] == 1.25
+    assert observed["preference"] == "1.25"
+    assert observed["resumeHidden"] is True
+    context.close()
+
+
+def test_audio_resume_rejects_old_edition_checksum(server_url, browser):
+    """A replacement recording never inherits the earlier edition's bookmark."""
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto(server_url + "/forward-science/")
+    result = page.evaluate("""async () => {
+      const key = 'forward-science:audio:v1:forward-science';
+      localStorage.setItem(key, JSON.stringify({sha256: 'a'.repeat(64), time: 225}));
+      const holder = document.createElement('div');
+      const audio = document.createElement('audio');
+      audio.dataset.audioFor = 'forward-science';
+      audio.dataset.audioSha = 'b'.repeat(64);
+      holder.append(audio);
+      const resume = document.createElement('button');
+      resume.className = 'audio-resume';
+      resume.hidden = true;
+      holder.append(resume);
+      document.querySelector('.reading-tools').append(holder);
+      Object.defineProperty(audio, 'duration', {get: () => 300});
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.onload = resolve;
+        script.onerror = reject;
+        script.src = '../reader.js?integration-audio=2';
+        document.body.append(script);
+      });
+      audio.dispatchEvent(new Event('loadedmetadata'));
+      return {hidden: resume.hidden, time: audio.currentTime};
+    }""")
+    assert result == {"hidden": True, "time": 0}
+    context.close()
+
+
 def test_no_javascript_still_has_text_and_navigation(server_url, browser):
     context = browser.new_context(java_script_enabled=False)
     page = context.new_page()

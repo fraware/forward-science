@@ -191,7 +191,14 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .audio-edition { margin-top: 24px; padding: 20px 0; border-top: 1px solid var(--line); }
 .audio-edition__title { font-weight: 600; margin: 0 0 12px; }
 .audio-edition audio { display: block; width: 100%; margin-bottom: 12px; }
-.audio-edition select { margin-left: 7px; font: inherit; background: var(--paper); color: var(--ink); border: 1px solid var(--line); padding: 4px; }
+.audio-edition__tools { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; font: 12px/1.5 var(--sans); }
+.audio-edition__tools button { cursor: pointer; min-height: 36px; border: 1px solid var(--line); color: var(--ink); background: transparent; border-radius: 3px; padding: 7px 12px; font: inherit; }
+.audio-edition__tools button:disabled { opacity: .45; cursor: default; }
+.audio-edition__tools button[hidden] { display: none; }
+.audio-edition__tools :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.audio-edition__tools label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
+.audio-edition select { font: inherit; background: var(--paper); color: var(--ink); border: 1px solid var(--line); padding: 6px; min-height: 36px; }
+.audio-feedback { min-height: 1em; color: var(--muted); font: 12px/1.5 var(--sans); margin: 5px 0 0; }
 @media print { .reading-tools, .reading-progress, .continue-reading { display: none !important; } }
 
 /* Downloadable editions belong to the series, not individual source bodies. */

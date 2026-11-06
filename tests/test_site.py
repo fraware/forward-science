@@ -171,7 +171,14 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="Suspicious MP3 size|listening review"):
         module.build(source, tmp_path / "unreviewed", None, strict=True)
     page = BeautifulSoup((site / slug / "index.html").read_text(), "html.parser")
-    assert page.select_one("audio[src='../media/scientific-loop.mp3']") is not None
+    player = page.select_one("audio[data-audio-for='scientific-loop']")
+    assert player is not None
+    assert player["src"] == "../media/scientific-loop.mp3?v=" + hashlib.sha256(data).hexdigest()[:12]
+    assert player["data-audio-sha"] == hashlib.sha256(data).hexdigest()
+    assert page.select_one(".audio-skip-back[disabled]") is not None
+    assert page.select_one(".audio-skip-forward[disabled]") is not None
+    assert page.select_one(".audio-resume[hidden]") is not None
+    assert page.select_one(".audio-feedback[role='status']") is not None
     description = page.select_one(".audio-edition__description")
     assert description is not None
     assert "Synthetic narration" in description.get_text(" ", strip=True)

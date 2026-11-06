@@ -22,6 +22,12 @@ ElevenLabs' current advertised per-character usage is approximately 1 credit for
 
 Generate once and serve the final reviewed MP3 as a static site file. Do not send paragraphs to a paid API each time a reader clicks Play. Keep API credentials outside source control and the browser.
 
+## Additional open-weight models for an independent audition
+
+[Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) has Apache-2.0-licensed 0.6B and 1.7B speech models, including English preset voices. It is a credible additional option to test for greater naturalness, with substantially higher inference and memory needs than Kokoro 82M. Its developers publish quality results, yet selection for Forward Science must rely on **identical-text listening tests and scientific pronunciation audits**, not vendor/developer benchmarks alone.
+
+[Chatterbox](https://github.com/resemble-ai/chatterbox) is MIT open source but was archived as unmaintained research in August 2026. It remains a possible offline comparison, with an extra operational-maintenance risk. Never clone any person's voice without their permission.
+
 ## Four free, comparable narrator auditions
 
 The source-controlled workflow [narration-voice-auditions.yml](../.github/workflows/narration-voice-auditions.yml) synthesizes identical passages from the source-verified first essay with four pinned Kokoro voices:

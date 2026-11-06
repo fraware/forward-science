@@ -120,7 +120,7 @@ The site contains audio-player support but **no recordings are published yet**. 
 4. Run `python -m pytest -q`, `node --check reader.js` and `python scripts/build.py --strict --base-url https://fraware.github.io/forward-science`.
 5. Confirm playback, seeking, speed control, interruption/resumption, and mobile/screen-reader operation before deployment.
 
-The player uses native browser audio controls and restores position only through optional local storage. Navigation between independent HTML pages restarts the document, so playback itself does not continue seamlessly across page changes. Keep MP3 files compressed and monitor GitHub Pages repository and bandwidth quotas. Do not add unchecked or incomplete recordings solely to activate the Listen interface.
+The approved-recording player retains the browser's native audio controls. It adds −15-second and +30-second jumps, one listening-speed preference across the series, and an explicit **Resume at M:SS** action. Progress is stored locally and bound to the actual recording SHA-256: a replacement/remastered MP3 invalidates older timestamps. No audio plays automatically. Optional Media Session metadata identifies the essay on supported lock screens and headphones. The controls remain functional without Media Session or local storage. Playback cannot continue seamlessly across separate essay pages. Preserve small, cache-valid static MP3 assets and monitor GitHub Pages bandwidth usage.
 
 ### Editorial requirements
 
@@ -133,6 +133,8 @@ The website intentionally contains no offline-download section or chapter downlo
 For a future narration, run `python scripts/prepare_narration.py --out narration-work` locally. The command generates six complete UTF-8 manuscripts, paragraph-bounded narration chunks and an integrity manifest. This produces **text only**. Recordings have yet to be produced, reviewed and added to the checksum-gated audio manifest. The resulting manuscripts should be reviewed by a narrator or used with a connected voice-production provider; voice quality, scientific pronunciation and chapter completeness need listening checks before any audio is published.
 
 ## Natural narration policy
+
+**Playback acceptance:** The Listen panel is rendered exclusively for approved recordings. It retains a native, accessible player and the essay as full transcript. Real Android/iOS audio, headphone controls, and the narrator's naturalness need physical-device listening acceptance; mocked Chromium tests verify interface behavior, not sonic quality.
 
 The former site-owned browser text-to-speech interface was removed because the built-in system voices did not meet the publication's narration standard. A full-length, editorially accepted audio edition now uses the site's ordinary native HTML audio player. An unapproved essay remains fully readable as text, without a misleading Listen control. Visitors may still use their own accessibility technology independently of the site.
 
