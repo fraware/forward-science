@@ -132,6 +132,10 @@ The website intentionally contains no offline-download section or chapter downlo
 
 For a future narration, run `python scripts/prepare_narration.py --out narration-work` locally. The command generates six complete UTF-8 manuscripts, paragraph-bounded narration chunks and an integrity manifest. This produces **text only**. Recordings have yet to be produced, reviewed and added to the checksum-gated audio manifest. The resulting manuscripts should be reviewed by a narrator or used with a connected voice-production provider; voice quality, scientific pronunciation and chapter completeness need listening checks before any audio is published.
 
+## Source-matched, blind voice quality auditions
+
+The GitHub Actions workflow `.github/workflows/narration-voice-auditions.yml` generates four identical-text Kokoro auditions and enforces the same approximate -18 LUFS loudness target for fair comparison. The dedicated `scripts/build_blind_voice_review.py` command produces an **offline anonymous listening page**, four MP3s, independent checksums, and a separate sealed-instructions identity key. Reviewers score naturalness, scientific pronunciation and cadence before learning the voice names. This research-only package is an Actions artifact, never a published reader feature. A short preview identifies candidates and cannot replace a full-length listening sign-off.
+
 ## Natural narration policy
 
 **Playback acceptance:** The Listen panel is rendered exclusively for approved recordings. It retains a native, accessible player and the essay as full transcript. Real Android/iOS audio, headphone controls, and the narrator's naturalness need physical-device listening acceptance; mocked Chromium tests verify interface behavior, not sonic quality.

@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - .github/workflows/narration-voice-auditions.yml
+      - scripts/generate_narration_candidate.py
+      - scripts/build_blind_voice_review.py
+      - scripts/prepare_narration.py
 permissions:
   contents: read
 jobs:
@@ -61,6 +64,9 @@ jobs:
               assert metadata["voice"] == voice
               assert metadata["mp3_sha256"] == hashlib.sha256(mp3.read_bytes()).hexdigest()
               assert not metadata["publication_approved"]
+              quality = metadata["signal_quality"]
+              assert -20 <= quality["integrated_lufs"] <= -16
+              assert quality["true_peak_dbtp"] <= -1
               items.append((voice, metadata))
           assert len({data["sample_text_sha256"] for _, data in items}) == 1
           assert len({data["source_narration_sha256"] for _, data in items}) == 1
@@ -70,6 +76,8 @@ jobs:
               "Four free Kokoro neural voices read the identical first two paragraphs of the Forward Science essay.",
               "These files are audition samples, not reviewed or published audio editions.",
               "Original source paragraphs and the verified model are identical across samples.",
+              "All clips are independently mastered and checked near -18 LUFS.",
+              "An offline blinded player is included, with scored review export and a separate identity key.",
               "",
           ]
           for voice, info in items:
@@ -85,6 +93,21 @@ jobs:
           (base / "README-AUDITIONS.md").write_text("\n".join(lines) + "\n")
           print("Identical manuscript fingerprints confirmed for four independent voices")
           PY
+      - name: Assemble offline blind listening review with checked audio
+        run: |
+          python scripts/build_blind_voice_review.py \
+            --input voice-auditions --output voice-auditions/blind-review
+          test "$(find voice-auditions/blind-review -maxdepth 1 -name 'Voice_*.mp3' | wc -l)" -eq 4
+          test -f voice-auditions/blind-review/LISTEN-OFFLINE.html
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          out = Path("voice-auditions/blind-review")
+          report = json.loads((out / "PROVENANCE.json").read_text())
+          assert not report["publication_approved"]
+          assert set(report["audio_sha256"]) == set("ABCD")
+          print("Four anonymized, source-identical and level-matched auditions packaged")
+          PY
       - name: Upload read-only voice samples
         uses: actions/upload-artifact@v4
         with:
@@ -93,5 +116,9 @@ jobs:
             voice-auditions/*/UNREVIEWED-forward-science-preview.mp3
             voice-auditions/*/CANDIDATE-NOT-FOR-PUBLICATION.json
             voice-auditions/README-AUDITIONS.md
+            voice-auditions/blind-review/*.mp3
+            voice-auditions/blind-review/*.html
+            voice-auditions/blind-review/*.json
+            voice-auditions/blind-review/READ-ME-FIRST.txt
           retention-days: 30
           if-no-files-found: error

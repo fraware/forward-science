@@ -37,9 +37,15 @@ The source-controlled workflow [narration-voice-auditions.yml](../.github/workfl
 - `am_michael` — American male.
 - `bm_george` — British male.
 
-Each sample uses the same model and text SHA-256. The GitHub Actions workflow verifies model and voice-pack hashes; creates short **unreviewed** MP3s and per-voice provenance JSON; asserts all four samples use the identical narration text; and uploads one 30-day editorial artifact, **FOUR-VOICE-UNREVIEWED-NARRATION-AUDITIONS**. The samples are not deployed to the website or eligible for publication. Workflow execution depends on normal GitHub Actions availability.
+Each sample uses the same model and text SHA-256. The GitHub Actions workflow verifies model and voice-pack hashes; creates short **unreviewed** MP3s and per-voice provenance JSON; independently measures integrated loudness and true peak, and rejects auditions outside the accepted approximately **−18 LUFS** range. It additionally creates a **blinded, offline listening page** with anonymous A/B/C/D MP3s, naturalness/scientific-pronunciation/cadence score controls, local-only review export, and a separate identity key to open once scoring is complete. Everything is uploaded as one 30-day editorial artifact, **FOUR-VOICE-UNREVIEWED-NARRATION-AUDITIONS**. The samples are excluded from the public website.
+
+The first November 6 successful audition [run 42248917684](https://github.com/fraware/forward-science/actions/runs/42248917684) produced four same-text samples, yet the generated MP3s independently measured **−26.0, −24.5, −27.9, and −25.2 LUFS** for voices af_heart, bf_emma, am_michael and bm_george respectively. This was a meaningful production defect that biased comparisons toward louder voices. The updated generator applies FFmpeg `loudnorm` and independently verifies the output; the corrected blind comparison ZIP was created separately from the checked audio files. The earlier run remains a historical artifact, not evidence of normalization or sign-off.
 
 To reproduce locally, install the specified runtime and use `scripts/generate_narration_candidate.py` with pinned Kokoro model assets and your chosen `--voice` value. The six-essay unreviewed master production workflow and all-source integrity gates already exist; do not regenerate all six until a narrator has been chosen.
+
+## Independent speech-to-text evidence from the earlier full-draft set
+
+The existing [independent ASR audit](https://github.com/fraware/forward-science/actions/runs/42107511985) processed **147 phrase segments across all six unreviewed drafts**. It flagged one high-priority discrepancy, “first hand” versus “firsthand,” which appears orthographic in the reference and recognized text. This audit is a *triage instrument*. Its results neither establish naturalness nor prove word-for-word correspondence; all full recordings still need human review. The private ASR audit ZIP and phrase-level evidence are stored in the corresponding GitHub Actions artifact, with the audit script committed to the repository.
 
 ## Editorial listening rubric
 

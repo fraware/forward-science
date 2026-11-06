@@ -40,6 +40,27 @@ def text_chunks(text: str, limit: int = 330) -> list[str]:
     return chunks
 
 
+def master_preview(wav: Path, mp3: Path, sample_rate: int) -> dict:
+    """Normalize a preview to the approved-loudness target and verify it.
+
+    Evenly mastered clips support a fair voice audition without implying that
+    their pronunciation, intonation or completeness have been approved.
+    """
+    if sample_rate <= 0 or not wav.is_file():
+        raise ValueError("Missing WAV source or invalid sample rate")
+    completed = subprocess.run(
+        ["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y",
+         "-i", str(wav), "-af", "loudnorm=I=-18:TP=-1.5:LRA=9",
+         "-ar", str(sample_rate), "-ac", "1",
+         "-codec:a", "libmp3lame", "-b:a", "96k", str(mp3)],
+        capture_output=True, text=True, timeout=120,
+    )
+    if completed.returncode:
+        raise RuntimeError(f"MP3 mastering failed for {mp3.name}: {completed.stderr[-250:]}")
+    from generate_all_audio_candidates import measure_audio
+    return measure_audio(mp3)
+
+
 def generate(root: Path, model: Path, voices: Path, output: Path, voice: str) -> dict:
     """Render a two-paragraph preview; publishable editions use a separate gate."""
     from prepare_narration import compile_narration
@@ -72,13 +93,9 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str) ->
     wav = output / "UNREVIEWED-forward-science-preview.wav"
     mp3 = output / "UNREVIEWED-forward-science-preview.mp3"
     sf.write(wav, waveform, sample_rate, subtype="PCM_16")
-    completed = subprocess.run(
-        ["ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-y",
-         "-i", str(wav), "-codec:a", "libmp3lame", "-b:a", "96k", str(mp3)],
-        capture_output=True, text=True, timeout=120,
-    )
-    if completed.returncode:
-        raise RuntimeError(f"MP3 encoding failed: {completed.stderr[-250:]}")
+    # Previous raw previews measured -24.5 to -27.9 LUFS. Use an
+    # independent -18 LUFS measurement before comparing voice naturalness.
+    signal_quality = master_preview(wav, mp3, sample_rate)
     wav.unlink()
     report = {
         "status": "CANDIDATE_ONLY_UNREVIEWED",
@@ -92,6 +109,8 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str) ->
         "language": "en-us",
         "chunks": len(pieces),
         "duration_seconds": round(len(waveform) / sample_rate, 2),
+        "signal_quality": signal_quality,
+        "mastering": "FFmpeg loudnorm -18 LUFS target, -1.5 dBTP target; mono 96 kbps MP3",
         "mp3_sha256": hashlib.sha256(mp3.read_bytes()).hexdigest(),
         "editorial_review": "NOT_PERFORMED",
         "publication_approved": False,

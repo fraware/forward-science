@@ -40,3 +40,31 @@ def test_narration_candidate_uses_verified_source_text(tmp_path):
     sample = " ".join(text.split("\n\n")[:2]).strip()
     chunks = module.text_chunks(sample)
     assert " ".join(chunks) == " ".join(sample.split())
+
+
+def test_candidate_mastering_meets_signal_target_with_real_ffmpeg(tmp_path):
+    """A voice audition must be loudness comparable before subjective scoring."""
+    import shutil
+    import subprocess
+    import sys
+
+    assert shutil.which("ffmpeg"), "FFmpeg is required in the audio CI runner"
+    sys.path.insert(0, str(ROOT / "scripts"))
+    wav = tmp_path / "synthetic.wav"
+    mp3 = tmp_path / "normalized.mp3"
+    subprocess.run(
+        ["ffmpeg", "-nostdin", "-hide_banner", "-v", "error",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=3",
+         "-ar", "24000", "-ac", "1", "-y", str(wav)],
+        check=True, timeout=35,
+    )
+    quality = module.master_preview(wav, mp3, 24000)
+    assert mp3.stat().st_size > 15000
+    assert -20 <= quality["integrated_lufs"] <= -16
+    assert quality["true_peak_dbtp"] <= -1
+    assert quality["silences_over_2_5_seconds"] == 0
+
+
+def test_candidate_mastering_rejects_bad_input(tmp_path):
+    with pytest.raises(ValueError, match="Missing WAV source or invalid sample rate"):
+        module.master_preview(tmp_path / "missing.wav", tmp_path / "out.mp3", 24000)

@@ -23,6 +23,7 @@ The six-essay publication is imported from the author export and verified agains
 
 - [x] Remove the site-owned browser speech interface, its obsolete production script, and the low-quality voice selector.
 - [x] Remove the Copy citation action, clipboard handler, and copied-citation feedback from all essays.
+- [x] Audit all four existing free audition MP3s for measured loudness and repair the preview mastering path, with independent FFmpeg verification and a blind, same-source listening interface.
 - [ ] Listen to alternative neural voice samples from the pinned free Kokoro pipeline; choose the narrator only with editorial approval.
 - [x] Prepare a safe ElevenLabs Multilingual v2 audition path with no-charge default, explicitly authorized single-request mode, credit ceiling, optional private secret and offline tests.
 - [ ] Evaluate a licensed ElevenLabs long-form sample if the local candidates fall short of natural, professional delivery. Paid provider usage still needs explicit authorization.
