@@ -10,6 +10,7 @@ The six-essay publication is imported from the author export and verified agains
 - [x] Build six local reader routes with next/previous navigation.
 - [x] Import all six original HTML bodies from the author's Substack export.
 - [ ] Manually compare each imported body with the latest live edition paragraph by paragraph.
+- [ ] Run the new read-only live-edition comparison, inspect all six results, and manually adjudicate any network unavailability, content drift, HTML-format differences or changed citation destinations. The undocumented Substack JSON endpoint is an external dependency, so its failures are distinct from verified editorial differences.
 - [ ] Review footnotes, scientific citations, equations, images, media embeds, alt text and internal anchors in each chapter.
 - [ ] Decide whether to correct typographical errors in the source publications; preserve a traceable edition history if changes are made.
 

@@ -1,0 +1,33 @@
+name: Audit live Substack editions
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/audit_live_substack.py'
+      - 'tests/test_live_substack.py'
+      - '.github/workflows/live-edition-audit.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-build.txt pytest
+      - name: Exercise fail-closed edition comparison tests
+        run: python -m pytest -q tests/test_live_substack.py
+      - name: Compare all six live public originals with imported source
+        run: python scripts/audit_live_substack.py --json live-edition-audit.json
+      - name: Preserve read-only comparison evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-substack-edition-audit
+          path: live-edition-audit.json
+          if-no-files-found: warn
+          retention-days: 30
