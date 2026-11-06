@@ -29,6 +29,7 @@ from bs4 import BeautifulSoup, Comment
 ROOT = Path(__file__).resolve().parents[1]
 PUBLICATION_HOST = "mateopetel.substack.com"
 MAX_RESPONSE_BYTES = 2_000_000
+MAX_PAGE_BYTES = 8_000_000
 MAX_POSTS = 6
 MAX_TEXT_PREVIEW = 110
 SPACE = re.compile(r"\s+")
@@ -68,7 +69,9 @@ def fetch_public_post(api_url: str) -> dict:
             if urlsplit(response.geturl()).hostname != PUBLICATION_HOST:
                 raise UnavailableSource("Unexpected public API redirect")
             payload = response.read(MAX_RESPONSE_BYTES + 1)
-    except (HTTPError, URLError, OSError, TimeoutError) as exc:
+    except HTTPError as exc:
+        return fetch_public_page(api_url, f"HTTP {exc.code}")
+    except (URLError, OSError, TimeoutError) as exc:
         raise UnavailableSource(f"Public API fetch failed: {type(exc).__name__}") from exc
     if len(payload) > MAX_RESPONSE_BYTES:
         raise UnavailableSource("Public JSON response exceeds bounded size")
@@ -80,6 +83,55 @@ def fetch_public_post(api_url: str) -> dict:
         raise UnavailableSource("Public post record has unexpected shape")
     return record
 
+
+
+def fetch_public_page(api_url: str, api_failure: str) -> dict:
+    """Attempt exact public HTML only if the undocumented JSON endpoint fails.
+
+    The article element, canonical URL, title, subtitle and date must all be
+    independently identifiable. The HTML page does not prove the numeric post
+    ID, which is explicitly recorded as a weaker identity check in the report.
+    """
+    slug = api_url.rsplit("/", 1)[-1]
+    public_url = f"https://{PUBLICATION_HOST}/p/{slug}"
+    req = Request(public_url, headers={
+        "Accept": "text/html",
+        "User-Agent": "ForwardScience-EditionAudit/1.0 (read-only; author-publication verification)",
+    })
+    try:
+        with urlopen(req, timeout=20) as response:
+            observed = urlsplit(response.geturl())
+            if observed.scheme != "https" or observed.hostname != PUBLICATION_HOST or observed.path.rstrip("/") != f"/p/{slug}":
+                raise UnavailableSource("Unexpected public HTML redirect")
+            if response.status != 200:
+                raise UnavailableSource(f"Public HTML HTTP {response.status}")
+            raw = response.read(MAX_PAGE_BYTES + 1)
+    except HTTPError as exc:
+        raise UnavailableSource(f"Public API {api_failure}; HTML HTTP {exc.code}") from exc
+    except (URLError, OSError, TimeoutError) as exc:
+        raise UnavailableSource(f"Public API {api_failure}; HTML fetch failed: {type(exc).__name__}") from exc
+    if len(raw) > MAX_PAGE_BYTES:
+        raise UnavailableSource(f"Public API {api_failure}; HTML exceeds bounded size")
+    soup = BeautifulSoup(raw, "html.parser")
+    article = (soup.select_one(".available-content .body.markup")
+               or soup.select_one(".body.markup")
+               or soup.select_one("article .post-content"))
+    canonical = soup.select_one('link[rel="canonical"][href]')
+    header = soup.select_one("h1.post-title") or soup.select_one("h1")
+    subtitle = (soup.select_one("h3.subtitle") or soup.select_one(".post-subtitle")
+                or soup.select_one(".subtitle"))
+    published = soup.select_one('meta[property="article:published_time"][content]')
+    timed = soup.select_one("time[datetime]")
+    when = (published.get("content") if published else
+            timed.get("datetime") if timed else None)
+    if not all((article, canonical, header, subtitle, when)):
+        raise UnavailableSource(f"Public API {api_failure}; HTML metadata/body inaccessible")
+    return {
+        "_source_type": "public_html", "canonical_url": canonical.get("href", ""),
+        "title": header.get_text(" ", strip=True),
+        "subtitle": subtitle.get_text(" ", strip=True),
+        "post_date": when, "body_html": str(article),
+    }
 
 def article_evidence(body_html: str) -> tuple[list[str], list[tuple[str, str]], str, list[tuple[str, str, str]]]:
     """Extract ordered text blocks, citations, full text and media descriptors.
@@ -162,10 +214,16 @@ def audit_one(essay: dict, provenance: dict, root: Path,
         live_paragraphs, live_links, live_full_text, live_media = article_evidence(raw_body)
         if len(local_paragraphs) < 5 or len(live_paragraphs) < 5:
             raise UnavailableSource("Too few paragraphs for a complete-publication comparison")
-        expected_id = str(provenance["source_post_id"]).split(".", 1)[0]
-        observed_id = live.get("id")
-        if observed_id is None or str(observed_id) != expected_id:
-            raise UnavailableSource("Public post ID missing or differs from source provenance")
+        if live.get("_source_type") == "public_html":
+            if live.get("canonical_url", "").rstrip("/") != essay["original_url"].rstrip("/"):
+                raise UnavailableSource("Public HTML canonical URL differs from expected post")
+            result["source_identity"] = "canonical URL (numeric post ID unavailable in HTML)"
+        else:
+            expected_id = str(provenance["source_post_id"]).split(".", 1)[0]
+            observed_id = live.get("id")
+            if observed_id is None or str(observed_id) != expected_id:
+                raise UnavailableSource("Public post ID missing or differs from source provenance")
+            result["source_identity"] = "numeric post ID"
         if normalize_text(str(live.get("title", ""))) != normalize_text(essay["title"]):
             result.update(status="drift", reason="Public title differs from original manifest")
             return result
@@ -196,7 +254,7 @@ def audit_one(essay: dict, provenance: dict, root: Path,
                           first_link_difference=difference,
                           export_link_count=len(local_links), live_link_count=len(live_links))
         else:
-            result.update(status="match", reason="Post identity, metadata, article text, media and citation hyperlinks agree")
+            result.update(status="match", reason="Source URL/identity, metadata, article text, media and citation hyperlinks agree")
     except (UnavailableSource, ValueError, UnicodeError, OSError) as exc:
         result.update(status="unavailable", reason=str(exc))
     return result

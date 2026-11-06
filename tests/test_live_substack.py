@@ -165,3 +165,25 @@ def test_nonparagraph_addition_and_media_changes_are_detected(tmp_path: Path):
     result = module.audit_one(manifest[0], provenance[0], root, fetch)
     assert result["status"] == "drift"
     assert result["live_media_count"] == 1
+
+
+def test_public_html_fallback_matches_with_canonical_identity(tmp_path: Path):
+    root, manifest, provenance, posts, _fetch = fixture(tmp_path)
+    item = dict(posts["alpha"])
+    item.pop("id")
+    item["_source_type"] = "public_html"
+    item["canonical_url"] = manifest[0]["original_url"]
+    result = module.audit_one(manifest[0], provenance[0], root, lambda _: item)
+    assert result["status"] == "match"
+    assert "numeric post ID unavailable" in result["source_identity"]
+
+
+def test_public_html_must_have_expected_canonical(tmp_path: Path):
+    root, manifest, provenance, posts, _fetch = fixture(tmp_path)
+    item = dict(posts["alpha"])
+    item.pop("id")
+    item["_source_type"] = "public_html"
+    item["canonical_url"] = "https://mateopetel.substack.com/p/another-post"
+    result = module.audit_one(manifest[0], provenance[0], root, lambda _: item)
+    assert result["status"] == "unavailable"
+    assert "canonical URL" in result["reason"]
