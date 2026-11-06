@@ -244,6 +244,39 @@ def test_build_refuses_overlapping_source_paths(tmp_path: Path) -> None:
         module.build(ROOT, ROOT, None, strict=False)
 
 
+@pytest.mark.parametrize(
+    "relative_output",
+    ["docs", "tests", "browser", ".github", "site/alternate"],
+)
+def test_build_rejects_other_repository_destinations(relative_output: str) -> None:
+    """Do not overwrite project files even if the destination is not a known source root."""
+    with pytest.raises(ValueError, match="overlaps publication sources"):
+        module.build(ROOT, ROOT / relative_output, None, strict=False)
+
+
+def test_build_rejects_symlinked_output_root(tmp_path: Path) -> None:
+    """A redirected generated root must not affect an external directory."""
+    external = tmp_path / "external"
+    external.mkdir()
+    output = tmp_path / "site"
+    output.symlink_to(external, target_is_directory=True)
+    with pytest.raises(ValueError, match="Generated output path is a symlink"):
+        module.build(ROOT, output, None, strict=False)
+    assert list(external.iterdir()) == []
+
+
+def test_build_rejects_symlinked_chapter_before_rendering(tmp_path: Path) -> None:
+    """Check existing output paths before any chapter write follows a symlink."""
+    output = tmp_path / "site"
+    external = tmp_path / "external"
+    output.mkdir()
+    external.mkdir()
+    (output / "forward-science").symlink_to(external, target_is_directory=True)
+    with pytest.raises(ValueError, match="Symlink forbidden in generated publication"):
+        module.build(ROOT, output, None, strict=False)
+    assert list(external.iterdir()) == []
+
+
 def test_build_refuses_symlinked_media_output(tmp_path: Path) -> None:
     """Build cleanup must never follow a preexisting publication media symlink."""
     output = tmp_path / "site"

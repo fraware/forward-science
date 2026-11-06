@@ -164,15 +164,26 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
     # Never allow a generated-output path to overlap source or repository
     # authority: a caller-supplied --out must not destroy editable files.
     source_root = root.resolve()
+    # Only the designated site/ directory is writable inside the repository.
+    # All other outputs must be outside the repository tree, including docs/,
+    # tests/, browser/, .git/, and nested destinations under site/.
+    if output.is_symlink():
+        raise ValueError("Generated output path is a symlink")
     target_root = output.resolve()
-    protected_roots = (
-        source_root / "content", source_root / "media",
-        source_root / "templates", source_root / "scripts",
-        source_root / ".github",
-    )
+    publication_root = source_root / "site"
     if (target_root == source_root or source_root.is_relative_to(target_root)
-            or any(target_root.is_relative_to(p) for p in protected_roots)):
+            or (target_root.is_relative_to(source_root)
+                and target_root != publication_root)):
         raise ValueError("Generated output overlaps publication sources or repository files")
+    # Reject existing symlinks before generating any files. The later strict
+    # allowlist still protects the final upload, but checks after writes alone
+    # would allow a preexisting symlinked chapter directory to be overwritten.
+    if output.is_dir():
+        for existing in output.rglob("*"):
+            if existing.is_symlink():
+                if existing == output / "media":
+                    raise ValueError("Output media path is a symlink")
+                raise ValueError(f"Symlink forbidden in generated publication: {existing}")
     essays = load_essays(root)
     incomplete = [e["slug"] for e in essays if not e["complete"]]
     if strict and incomplete:
