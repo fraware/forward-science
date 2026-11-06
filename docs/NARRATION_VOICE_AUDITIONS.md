@@ -55,6 +55,26 @@ A preferred short audition does **not** validate a complete recording. For a cho
 
 ## Follow-on paid comparison
 
+The [manual-only ElevenLabs voice audition workflow](../.github/workflows/elevenlabs-audition.yml) defaults to **no-charge preview mode**. A selected narrator is sent one short source-identical passage only through an explicit paid execution flag. Samples and source/voice checksums remain private and unreviewed.
+
+Equivalent local commands:
+
+```bash
+# Default: no external request and no credits spent.
+python scripts/generate_elevenlabs_audition.py --output /private/fs-elevenlabs-plan
+
+# Optional deliberate paid sample; set API key securely, never in a repo.
+python scripts/generate_elevenlabs_audition.py \
+  --output /private/fs-elevenlabs-sample \
+  --voice-id JBFqnCBsd6RMkjVDRZzb \
+  --max-credits 2000 --execute
+```
+
+The official ElevenLabs documentation uses that voice identifier as an example; it is not the editorially chosen narrator. The first two paragraphs and their SHA-256 match the Kokoro audition input. The CLI verifies the full source manuscript hash, validates response size and MP3 codec/duration, records the provider/model/voice and never writes the secret. The credit ceiling is a **one-credit-per-character estimate** for Multilingual v2, not a billing authorization for anything beyond the specified request; examine actual account usage after synthesis. Avoid automatic retries following ambiguous HTTP failures because generation might already have incurred a charge.
+
+For the GitHub workflow, use `Settings → Secrets and variables → Actions` to store `ELEVENLABS_API_KEY` privately. Enter the voice ID and select the billable checkbox for an authorized sample; the default is false. Neither running the script nor obtaining an MP3 constitutes approval to distribute the narration.
+
+
 If none of the free voices is acceptable, audition **ElevenLabs Multilingual v2** first, comparing the **same** source passage against one or two voices chosen from the service's library. The provider documents Multilingual v2 as the most stable model for long-form narration. The newer v4 may be sampled for expressiveness, without assuming that a more dramatic voice is preferable for a scientific essay.
 
 Starting voice-settings for a controlled test are stability around 0.5–0.65, similarity around 0.75, and style at zero; the appropriate voice matters more than small parameter changes. These are candidate settings, not verified optimal values. Use a pronunciation dictionary where supported and check generated speech against the original article. Confirm model/voice license, commercial rights, monthly credits, and consent for any voice clone **before** using a file publicly.

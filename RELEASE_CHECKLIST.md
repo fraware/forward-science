@@ -24,7 +24,8 @@ The six-essay publication is imported from the author export and verified agains
 - [x] Remove the site-owned browser speech interface, its obsolete production script, and the low-quality voice selector.
 - [x] Remove the Copy citation action, clipboard handler, and copied-citation feedback from all essays.
 - [ ] Listen to alternative neural voice samples from the pinned free Kokoro pipeline; choose the narrator only with editorial approval.
-- [ ] Evaluate a licensed ElevenLabs long-form sample if the local candidates fall short of natural, professional delivery.
+- [x] Prepare a safe ElevenLabs Multilingual v2 audition path with no-charge default, explicitly authorized single-request mode, credit ceiling, optional private secret and offline tests.
+- [ ] Evaluate a licensed ElevenLabs long-form sample if the local candidates fall short of natural, professional delivery. Paid provider usage still needs explicit authorization.
 - [x] Add SHA-256-edition-bound listening bookmarks, explicit resumption, ±15/30-second seeking, and one persisted playback-speed preference for the future approved-MP3 player. Chromium uses injected synthetic media only and never publishes it.
 - [ ] Approve the complete six-essay recording set via the existing source-match, pronunciation, mastering, rights and full-length listening gates; test the native mobile audio player.
 

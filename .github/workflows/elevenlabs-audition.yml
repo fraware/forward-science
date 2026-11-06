@@ -1,0 +1,62 @@
+name: ElevenLabs voice audition (optional, billable only with confirmation)
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: "I explicitly authorize one paid TTS request for this short audition"
+        required: true
+        type: boolean
+        default: false
+      voice_id:
+        description: "Chosen ElevenLabs library voice ID (required when execute is true)"
+        required: false
+        type: string
+      max_credits:
+        description: "Maximum estimated credits permitted for this request"
+        required: true
+        type: number
+        default: 2000
+permissions:
+  contents: read
+jobs:
+  audition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-build.txt pytest
+      - name: Check optional paid generator without contacting the provider
+        run: python -m pytest -q tests/test_elevenlabs_audition.py
+      - name: Prepare audition metadata or explicitly bill one short sample
+        env:
+          DO_EXECUTE: ${{ inputs.execute }}
+          VOICE_ID: ${{ inputs.voice_id }}
+          MAX_CREDITS: ${{ inputs.max_credits }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          if [ "$DO_EXECUTE" = "true" ]; then
+            if ! command -v ffprobe >/dev/null; then
+              echo "ffprobe is required for purchased audio verification" >&2
+              exit 2
+            fi
+            python scripts/generate_elevenlabs_audition.py \
+              --output private-elevenlabs-audition \
+              --voice-id "$VOICE_ID" --max-credits "$MAX_CREDITS" --execute
+          else
+            python scripts/generate_elevenlabs_audition.py \
+              --output private-elevenlabs-audition \
+              --max-credits "$MAX_CREDITS"
+          fi
+      - name: Upload unreviewed, private listening evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UNREVIEWED-ELEVENLABS-VOICE-AUDITION
+          path: |
+            private-elevenlabs-audition/AUDITION-UNREVIEWED.json
+            private-elevenlabs-audition/UNREVIEWED-elevenlabs-forward-science-preview.mp3
+          retention-days: 7
+          if-no-files-found: warn
