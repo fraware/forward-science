@@ -121,6 +121,15 @@ def verify(path: Path, root: Path) -> dict:
         if len(html_records) != 6 or set(html_rows) != expected:
             raise ValueError("Review interface recording set differs from verified set")
 
+        ui_match = re.search(
+            r'<script id="asrData" type="application/json">([\s\S]*?)</script>', html
+        )
+        if ui_match is None:
+            raise ValueError("Review interface lacks independent ASR discrepancy controls")
+        ui_flags = json.loads(ui_match.group(1))
+        if not isinstance(ui_flags, dict) or set(ui_flags) != expected:
+            raise ValueError("Review interface omits ASR chapter discrepancy evidence")
+
         count = differences = 0
         for slug in sorted(expected):
             row = rec[slug]
@@ -144,6 +153,33 @@ def verify(path: Path, root: Path) -> dict:
                     or len(cues) != len(phrases) or len(found) != len(phrases)
                     or row.get("chunks") != len(phrases)):
                 raise ValueError(f"ASR source coverage is incomplete: {slug}")
+            expected_review_flags = []
+            for difference in found:
+                if not difference.get("mismatch_count", 0):
+                    continue
+                changes = difference.get("mismatches")
+                if not isinstance(changes, list) or not changes:
+                    raise ValueError(f"Missing ASR word-difference evidence: {slug}")
+                orthographic = all(
+                    str(item.get("reference", "")).replace(" ", "") ==
+                    str(item.get("recognized", "")).replace(" ", "")
+                    for item in changes
+                )
+                expected_review_flags.append({
+                    "segment": difference["segment"],
+                    "reference": difference["reference"],
+                    "recognized": difference.get("recognized", ""),
+                    "word_error_rate": difference.get("word_error_rate"),
+                    "discrepancies": changes,
+                    "difference_type": ("orthography-only" if orthographic
+                                        else "potential-content"),
+                    "start_seconds": difference.get("start_seconds"),
+                    "end_seconds": difference.get("end_seconds"),
+                })
+            if ui_flags[slug] != expected_review_flags:
+                raise ValueError(
+                    f"Review interface omits, changes, or misclassifies ASR differences: {slug}"
+                )
             for i, (cue, asr_row, (phrase, _)) in enumerate(
                     zip(cues, found, phrases, strict=True), 1):
                 if (cue.get("segment") != i or asr_row.get("segment") != i
