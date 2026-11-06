@@ -224,6 +224,11 @@ def test_audio_resume_skip_rate_and_completion_with_injected_media(server_url, b
         document.body.append(script);
       });
       audio.dispatchEvent(new Event('loadedmetadata'));
+      // Chrome may fire these during media initialization even if untouched.
+      audio.dispatchEvent(new Event('timeupdate'));
+      audio.dispatchEvent(new Event('pause'));
+      window.dispatchEvent(new Event('pagehide'));
+      const idleBookmark = JSON.parse(localStorage.getItem(key));
       const prompt = controls.resume.textContent;
       const noAutoplay = played === 0 && clock === 0;
       controls.resume.click();
@@ -238,12 +243,15 @@ def test_audio_resume_skip_rate_and_completion_with_injected_media(server_url, b
       const saved = JSON.parse(localStorage.getItem(key));
       audio.dispatchEvent(new Event('ended'));
       const completed = JSON.parse(localStorage.getItem(key));
-      return {prompt, noAutoplay, resumed, playCount, rewound, forwarded,
-        playbackRate: audio.playbackRate, saved, completed,
+      window.dispatchEvent(new Event('pagehide')); // Must not undo completed state.
+      const completedAfterExit = JSON.parse(localStorage.getItem(key));
+      return {prompt, noAutoplay, idleBookmark, resumed, playCount, rewound, forwarded,
+        playbackRate: audio.playbackRate, saved, completed, completedAfterExit,
         preference: localStorage.getItem('forward-science:audio-rate:v1'),
         resumeHidden: controls.resume.hidden};
     }""")
     assert observed["prompt"] == "Resume at 1:15"
+    assert observed["idleBookmark"] == {"sha256": "a" * 64, "time": 75}
     assert observed["noAutoplay"] is True
     assert observed["resumed"] == 75
     assert observed["playCount"] == 1
@@ -251,9 +259,77 @@ def test_audio_resume_skip_rate_and_completion_with_injected_media(server_url, b
     assert observed["forwarded"] == 90
     assert observed["saved"] == {"sha256": "a" * 64, "time": 90}
     assert observed["completed"] == {"sha256": "a" * 64, "time": 0}
+    assert observed["completedAfterExit"] == observed["completed"]
     assert observed["playbackRate"] == 1.25
     assert observed["preference"] == "1.25"
     assert observed["resumeHidden"] is True
+    context.close()
+
+
+def test_unplayed_audio_pagehide_never_creates_a_bookmark(server_url, browser):
+    """Background visits must leave the visitor's audio storage empty."""
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto(server_url + "/forward-science/")
+    result = page.evaluate("""async () => {
+      const key = 'forward-science:audio:v1:forward-science';
+      localStorage.removeItem(key);
+      const audio = document.createElement('audio');
+      audio.dataset.audioFor = 'forward-science';
+      audio.dataset.audioSha = 'c'.repeat(64);
+      document.querySelector('.reading-tools').append(audio);
+      Object.defineProperty(audio, 'duration', {get: () => 180});
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.onload = resolve;
+        script.onerror = reject;
+        script.src = '../reader.js?integration-audio=idle';
+        document.body.append(script);
+      });
+      audio.dispatchEvent(new Event('loadedmetadata'));
+      audio.dispatchEvent(new Event('timeupdate'));
+      audio.dispatchEvent(new Event('pause'));
+      window.dispatchEvent(new Event('pagehide'));
+      return localStorage.getItem(key);
+    }""")
+    assert result is None
+    context.close()
+
+
+def test_native_scrub_saves_only_after_user_seeks(server_url, browser):
+    """A visitor can bookmark a deliberate native-player seek before playback."""
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto(server_url + "/scientific-loop/")
+    result = page.evaluate("""async () => {
+      const key = 'forward-science:audio:v1:scientific-loop';
+      localStorage.setItem(key, JSON.stringify({sha256:'d'.repeat(64), time:75}));
+      const audio = document.createElement('audio');
+      audio.dataset.audioFor = 'scientific-loop';
+      audio.dataset.audioSha = 'd'.repeat(64);
+      document.querySelector('.reading-tools').append(audio);
+      let time = 0;
+      Object.defineProperty(audio, 'duration', {get: () => 240});
+      Object.defineProperty(audio, 'currentTime', {
+        get: () => time, set: value => {time = value;}
+      });
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.onload = resolve;
+        script.onerror = reject;
+        script.src = '../reader.js?integration-audio=scrub';
+        document.body.append(script);
+      });
+      audio.dispatchEvent(new Event('loadedmetadata'));
+      audio.currentTime = 120;
+      audio.dispatchEvent(new Event('seeked'));
+      const afterSeek = JSON.parse(localStorage.getItem(key));
+      window.dispatchEvent(new Event('pagehide'));
+      const afterExit = JSON.parse(localStorage.getItem(key));
+      return {afterSeek, afterExit};
+    }""")
+    assert result["afterSeek"] == {"sha256": "d" * 64, "time": 120}
+    assert result["afterExit"] == result["afterSeek"]
     context.close()
 
 

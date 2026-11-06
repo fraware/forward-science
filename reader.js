@@ -133,33 +133,47 @@
     const whole = Math.max(0, Math.floor(seconds));
     return Math.floor(whole / 60) + ":" + String(whole % 60).padStart(2, "0");
   };
+  // Loading a recording or leaving an untouched page must never erase an
+  // existing listening bookmark. Browsers may dispatch timeupdate/pause
+  // during media initialization, even before a visitor presses Play.
+  let sessionActive = false;
+  let lastSavedBucket = -1;
   const storePosition = () => {
-    if (!hasVerifiedVersion || !Number.isFinite(audio.currentTime)
-        || !validDuration()) return;
+    if (!sessionActive || !hasVerifiedVersion
+        || !Number.isFinite(audio.currentTime) || !validDuration()) return;
     store(audioKey(slug), {
       sha256: audioHash,
       time: Math.max(0, Math.min(audio.duration, audio.currentTime)),
     });
   };
 
-  // Persist no more frequently than one write per 5 seconds during playback.
-  // A pause or page exit records the exact current position.
-  let lastSavedBucket = -1;
+  // Throttle playback writes but record exact position on pause/navigation.
   audio.addEventListener("timeupdate", () => {
-    if (!Number.isFinite(audio.currentTime)) return;
+    if (!sessionActive || !Number.isFinite(audio.currentTime)) return;
     const bucket = Math.floor(audio.currentTime / 5);
     if (bucket !== lastSavedBucket) {
       lastSavedBucket = bucket;
       storePosition();
     }
   });
+  // Scrubbing with native controls is a listening action even while paused.
+  audio.addEventListener("seeked", () => {
+    sessionActive = true;
+    lastSavedBucket = -1;
+    storePosition();
+  });
   audio.addEventListener("pause", storePosition);
   window.addEventListener("pagehide", storePosition);
   audio.addEventListener("ended", () => {
-    store(audioKey(slug), { sha256: audioHash, time: 0 });
+    sessionActive = false;
+    lastSavedBucket = -1;
+    if (hasVerifiedVersion) {
+      store(audioKey(slug), { sha256: audioHash, time: 0 });
+    }
     if (resumeAudio) resumeAudio.hidden = true;
   });
   audio.addEventListener("play", () => {
+    sessionActive = true;
     if (resumeAudio) resumeAudio.hidden = true;
     feedbackText("");
   });
@@ -194,13 +208,20 @@
   });
 
   rewind?.addEventListener("click", () => {
-    if (seekTo(audio.currentTime - 15)) storePosition();
+    if (seekTo(audio.currentTime - 15)) {
+      sessionActive = true;
+      storePosition();
+    }
   });
   forward?.addEventListener("click", () => {
-    if (seekTo(audio.currentTime + 30)) storePosition();
+    if (seekTo(audio.currentTime + 30)) {
+      sessionActive = true;
+      storePosition();
+    }
   });
   resumeAudio?.addEventListener("click", () => {
     if (savedAudio && seekTo(savedAudio.time)) {
+      sessionActive = true;
       resumeAudio.hidden = true;
       storePosition();
       beginPlayback(); // Initiated by an explicit user interaction.
@@ -225,8 +246,18 @@
         album: "Forward Science",
       });
       const actions = {
-        seekbackward: (details) => seekTo(audio.currentTime - (details.seekOffset || 15)),
-        seekforward: (details) => seekTo(audio.currentTime + (details.seekOffset || 30)),
+        seekbackward: (details) => {
+          if (seekTo(audio.currentTime - (details?.seekOffset || 15))) {
+            sessionActive = true;
+            storePosition();
+          }
+        },
+        seekforward: (details) => {
+          if (seekTo(audio.currentTime + (details?.seekOffset || 30))) {
+            sessionActive = true;
+            storePosition();
+          }
+        },
       };
       for (const [action, callback] of Object.entries(actions)) {
         try { navigator.mediaSession.setActionHandler(action, callback); }
