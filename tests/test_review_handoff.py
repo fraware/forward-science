@@ -50,7 +50,16 @@ def evidence(tmp_path_factory):
             "status": "UNREVIEWED_DRAFT", "approved_for_publication": False,
         })
         chapters.append({"slug": slug, "segments": [
-            {"segment": i, "reference": text, "mismatch_count": int(i == 1)}
+            {
+                "segment": i, "reference": text,
+                "recognized": text + " ADDITIONAL" if i == 1 else text,
+                "mismatch_count": int(i == 1),
+                "mismatches": ([{
+                    "operation": "insert", "reference": "", "recognized": "ADDITIONAL",
+                }] if i == 1 else []),
+                "word_error_rate": 0.1 if i == 1 else 0.0,
+                "start_seconds": float(i), "end_seconds": float(i + 1),
+            }
             for i, (text, _) in enumerate(phrases, 1)
         ]})
         html_entries.append({
@@ -76,6 +85,21 @@ def evidence(tmp_path_factory):
             "distribution_rights_confirmed": False,
         },
     }).encode()
+    asr_flags = {
+        chapter["slug"]: [
+            {
+                "segment": row["segment"], "reference": row["reference"],
+                "recognized": row["recognized"],
+                "word_error_rate": row["word_error_rate"],
+                "discrepancies": row["mismatches"],
+                "difference_type": "potential-content",
+                "start_seconds": row["start_seconds"],
+                "end_seconds": row["end_seconds"],
+            }
+            for row in chapter["segments"] if row["mismatch_count"]
+        ]
+        for chapter in chapters
+    }
     entries.update({
         "UNREVIEWED-MANIFEST.json": manifest,
         "ASR_AUDIT_UNREVIEWED.json": audit,
@@ -83,6 +107,8 @@ def evidence(tmp_path_factory):
         "review.html": (
             '<script id="data" type="application/json">'
             + json.dumps(html_entries) + '</script>'
+            + '<script id="asrData" type="application/json">'
+            + json.dumps(asr_flags) + '</script>'
         ).encode(),
     })
     return entries
@@ -127,8 +153,22 @@ def test_audio_tampering_is_rejected_even_if_checksum_inventory_is_updated(tmp_p
 def test_source_blind_transcript_must_match_exact_reference(tmp_path, evidence):
     changed = dict(evidence)
     report = json.loads(changed["ASR_AUDIT_UNREVIEWED.json"])
-    report["chapters"][0]["segments"][0]["reference"] = "A different purported sentence"
+    forged = "A different purported sentence"
+    report["chapters"][0]["segments"][0]["reference"] = forged
     changed["ASR_AUDIT_UNREVIEWED.json"] = json.dumps(report).encode()
+    # Forge the review UI in exactly the same way. The authoritative source
+    # manuscript must still invalidate the mutually consistent false claim.
+    import re
+    review_html = changed["review.html"].decode("utf-8")
+    flags = json.loads(re.search(
+        r'<script id="asrData" type="application/json">([\s\S]*?)</script>', review_html
+    ).group(1))
+    flags[report["chapters"][0]["slug"]][0]["reference"] = forged
+    changed["review.html"] = re.sub(
+        r'(<script id="asrData" type="application/json">)[\s\S]*?(</script>)',
+        lambda match: match.group(1) + json.dumps(flags) + match.group(2),
+        review_html,
+    ).encode()
     with pytest.raises(ValueError, match="Source-linked speech segment mismatch"):
         verifier.verify(packaged(tmp_path, changed), ROOT)
 
@@ -148,8 +188,54 @@ def test_path_traversal_and_duplicate_names_fail_without_extracting(tmp_path, ev
         z.writestr("../private.txt", "secret")
     with pytest.raises(ValueError, match="Unsafe or duplicated ZIP path"):
         verifier.verify(archive, ROOT)
-    with ZipFile(archive, "w") as z:
-        z.writestr("duplicate.txt", "one")
-        z.writestr("duplicate.txt", "two")
+    with pytest.warns(UserWarning, match="Duplicate name"):
+        with ZipFile(archive, "w") as z:
+            z.writestr("duplicate.txt", "one")
+            z.writestr("duplicate.txt", "two")
     with pytest.raises(ValueError, match="Unsafe or duplicated ZIP path"):
         verifier.verify(archive, ROOT)
+
+
+
+def test_review_filter_must_show_all_asr_discrepancies(tmp_path, evidence):
+    """A filtered review that hides orthographic variants cannot reach release."""
+    import re
+    changed = dict(evidence)
+    html = changed["review.html"].decode("utf-8")
+    flags = json.loads(re.search(
+        r'<script id="asrData" type="application/json">([\s\S]*?)</script>', html
+    ).group(1))
+    flags["forward-science"] = []
+    changed["review.html"] = re.sub(
+        r'(<script id="asrData" type="application/json">)[\s\S]*?(</script>)',
+        lambda match: match.group(1) + json.dumps(flags) + match.group(2),
+        html,
+    ).encode()
+    with pytest.raises(ValueError, match="omits, changes, or misclassifies ASR differences"):
+        verifier.verify(packaged(tmp_path, changed), ROOT)
+
+
+def test_orthographic_variants_are_explicit_review_items(tmp_path, evidence):
+    """Split/join-only ASR differences remain in the reviewer's filtered queue."""
+    import re
+    changed = dict(evidence)
+    report = json.loads(changed["ASR_AUDIT_UNREVIEWED.json"])
+    sample = report["chapters"][0]["segments"][0]
+    sample["mismatches"] = [{
+        "operation": "replace", "reference": "first hand",
+        "recognized": "firsthand",
+    }]
+    changed["ASR_AUDIT_UNREVIEWED.json"] = json.dumps(report).encode()
+    html = changed["review.html"].decode("utf-8")
+    flags = json.loads(re.search(
+        r'<script id="asrData" type="application/json">([\s\S]*?)</script>', html
+    ).group(1))
+    flags[report["chapters"][0]["slug"]][0]["discrepancies"] = sample["mismatches"]
+    flags[report["chapters"][0]["slug"]][0]["difference_type"] = "orthography-only"
+    changed["review.html"] = re.sub(
+        r'(<script id="asrData" type="application/json">)[\s\S]*?(</script>)',
+        lambda match: match.group(1) + json.dumps(flags) + match.group(2),
+        html,
+    ).encode()
+    result = verifier.verify(packaged(tmp_path, changed), ROOT)
+    assert result["asr_different_segments"] == 6
