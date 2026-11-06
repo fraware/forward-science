@@ -153,8 +153,22 @@ def test_audio_tampering_is_rejected_even_if_checksum_inventory_is_updated(tmp_p
 def test_source_blind_transcript_must_match_exact_reference(tmp_path, evidence):
     changed = dict(evidence)
     report = json.loads(changed["ASR_AUDIT_UNREVIEWED.json"])
-    report["chapters"][0]["segments"][0]["reference"] = "A different purported sentence"
+    forged = "A different purported sentence"
+    report["chapters"][0]["segments"][0]["reference"] = forged
     changed["ASR_AUDIT_UNREVIEWED.json"] = json.dumps(report).encode()
+    # Forge the review UI in exactly the same way. The authoritative source
+    # manuscript must still invalidate the mutually consistent false claim.
+    import re
+    review_html = changed["review.html"].decode("utf-8")
+    flags = json.loads(re.search(
+        r'<script id="asrData" type="application/json">([\s\S]*?)</script>', review_html
+    ).group(1))
+    flags[report["chapters"][0]["slug"]][0]["reference"] = forged
+    changed["review.html"] = re.sub(
+        r'(<script id="asrData" type="application/json">)[\s\S]*?(</script>)',
+        lambda match: match.group(1) + json.dumps(flags) + match.group(2),
+        review_html,
+    ).encode()
     with pytest.raises(ValueError, match="Source-linked speech segment mismatch"):
         verifier.verify(packaged(tmp_path, changed), ROOT)
 
@@ -174,9 +188,10 @@ def test_path_traversal_and_duplicate_names_fail_without_extracting(tmp_path, ev
         z.writestr("../private.txt", "secret")
     with pytest.raises(ValueError, match="Unsafe or duplicated ZIP path"):
         verifier.verify(archive, ROOT)
-    with ZipFile(archive, "w") as z:
-        z.writestr("duplicate.txt", "one")
-        z.writestr("duplicate.txt", "two")
+    with pytest.warns(UserWarning, match="Duplicate name"):
+        with ZipFile(archive, "w") as z:
+            z.writestr("duplicate.txt", "one")
+            z.writestr("duplicate.txt", "two")
     with pytest.raises(ValueError, match="Unsafe or duplicated ZIP path"):
         verifier.verify(archive, ROOT)
 
