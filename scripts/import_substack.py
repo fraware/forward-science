@@ -171,8 +171,10 @@ def clean_article_html(raw: str) -> tuple[str, dict]:
     }
 
 
-def run(archive_path: Path, root: Path, apply: bool) -> list[dict]:
-    """Locate, verify, and optionally write six full-text HTML fragments."""
+def run(archive_path: Path, root: Path, apply: bool, compare: bool = False) -> list[dict]:
+    """Locate and verify six article fragments, with optional import or read-only comparison."""
+    if apply and compare:
+        raise ValueError("Import and edition comparison are mutually exclusive")
     manifest = json.loads((root / "content" / "essays.json").read_text(encoding="utf-8"))
     if len(manifest) != 6:
         raise ValueError("Unexpected essay manifest length")
@@ -197,6 +199,24 @@ def run(archive_path: Path, root: Path, apply: bool) -> list[dict]:
                 **facts,
             }
             staged.append((root / "content" / "essays" / (essay["slug"] + ".html"), clean, info))
+    if compare:
+        # Re-exporting after an editorial revision enables a comparison against
+        # the current committed edition without changing the Git working tree.
+        previous = json.loads((root / "content" / "import-provenance.json").read_text(encoding="utf-8"))
+        old_by_slug = {record["slug"]: record for record in previous}
+        if (len(old_by_slug) != 6 or len(previous) != 6
+                or set(old_by_slug) != {record["slug"] for _, _, record in staged}):
+            raise ValueError("Committed provenance does not cover exactly six essays")
+        for dest, clean, record in staged:
+            old = old_by_slug[record["slug"]]
+            committed = dest.read_text(encoding="utf-8").strip()
+            record["edition_comparison"] = {
+                "sanitized_html": committed == clean.strip(),
+                "source_sha256": old["source_sha256"] == record["source_sha256"],
+                "source_post_id": str(old["source_post_id"]) == str(record["source_post_id"]),
+                "source_date_raw": old["source_date_raw"] == record["source_date_raw"],
+                "source_html_member": old["source_html_member"] == record["source_html_member"],
+            }
     if apply:
         for dest, clean, _ in staged:
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -211,14 +231,29 @@ def run(archive_path: Path, root: Path, apply: bool) -> list[dict]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("export", type=Path, help="Official Substack publication export ZIP")
-    parser.add_argument("--apply", action="store_true", help="Write the six validated HTML fragments (default: dry run)")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--apply", action="store_true", help="Write the six validated HTML fragments")
+    mode.add_argument("--compare", action="store_true",
+                      help="Read-only exact edition comparison with committed import/provenance")
     args = parser.parse_args()
     try:
-        info = run(args.export, ROOT, args.apply)
+        info = run(args.export, ROOT, args.apply, compare=args.compare)
     except (OSError, ValueError, UnicodeError, zipfile.BadZipFile) as exc:
         parser.exit(2, f"Import failed: {exc}\n")
     for record in info:
         print(f"{record['slug']}: {record['source_word_count']} words, SHA256 {record['source_sha256'][:12]}…")
+    if args.compare:
+        differences = 0
+        for record in info:
+            failed = [name for name, matches in record["edition_comparison"].items() if not matches]
+            print(f"Edition comparison {record['slug']}: " +
+                  ("MATCH" if not failed else "REVIEW REQUIRED (" + ", ".join(failed) + ")"))
+            differences += bool(failed)
+        if differences:
+            print(f"EDITION DRIFT: {differences}/6 article(s) differ from the author export.", file=sys.stderr)
+            return 1
+        print("EXACT EDITION MATCH: all six article HTML bodies and provenance records agree.")
+        return 0
     print("Imported six articles." if args.apply else "Dry run passed. Re-run with --apply to write the verified articles.")
     return 0
 

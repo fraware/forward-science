@@ -1,12 +1,6 @@
 name: Audit live Substack editions
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/audit_live_substack.py'
-      - 'tests/test_live_substack.py'
-      - '.github/workflows/live-edition-audit.yml'
 permissions:
   contents: read
 jobs:

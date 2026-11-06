@@ -162,3 +162,39 @@ def test_dotted_substack_post_ids_match_export_member(tmp_path: Path) -> None:
         assert module.find_html(archive, {"post_id": "202156599"}) == "posts/202156599.forward-science.html"
         with pytest.raises(ValueError, match="malformed"):
             module.find_html(archive, {"post_id": "../../other"})
+
+
+def test_readonly_compare_export_detects_drift(tmp_path: Path) -> None:
+    """A fresh official export is compared without touching committed sources."""
+    archive = make_synthetic_export(tmp_path)
+    dest = tmp_path / "project_compare"
+    (dest / "content").mkdir(parents=True)
+    (dest / "content" / "essays.json").write_bytes((ROOT / "content" / "essays.json").read_bytes())
+    module.run(archive, dest, apply=True)
+    matches = module.run(archive, dest, apply=False, compare=True)
+    assert len(matches) == 6
+    assert all(all(entry["edition_comparison"].values()) for entry in matches)
+    body = dest / "content" / "essays" / "forward-science.html"
+    previous = body.read_bytes()
+    body.write_bytes(previous.replace(b"scientific loop", b"scientific workflow", 1))
+    changed = body.read_bytes()
+    report = module.run(archive, dest, apply=False, compare=True)
+    assert report[0]["edition_comparison"]["sanitized_html"] is False
+    assert report[0]["edition_comparison"]["source_sha256"] is True
+    assert all(all(entry["edition_comparison"].values()) for entry in report[1:])
+    assert body.read_bytes() == changed  # read-only, even when differences exist
+
+
+def test_readonly_compare_export_detects_provenance_change(tmp_path: Path) -> None:
+    archive = make_synthetic_export(tmp_path)
+    dest = tmp_path / "project_metadata"
+    (dest / "content").mkdir(parents=True)
+    (dest / "content" / "essays.json").write_bytes((ROOT / "content" / "essays.json").read_bytes())
+    module.run(archive, dest, apply=True)
+    path = dest / "content" / "import-provenance.json"
+    records = json.loads(path.read_text())
+    records[0]["source_post_id"] = "unexpected.post-id"
+    path.write_text(json.dumps(records), encoding="utf-8")
+    report = module.run(archive, dest, apply=False, compare=True)
+    assert report[0]["edition_comparison"]["sanitized_html"] is True
+    assert report[0]["edition_comparison"]["source_post_id"] is False
