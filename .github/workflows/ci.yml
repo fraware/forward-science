@@ -21,8 +21,7 @@ jobs:
           fi
           ffmpeg -version | head -n 1
           ffprobe -version | head -n 1
-      - run: node --check reader.js && node --check device-narration.js
-      - run: node --test tests/test_device_narration.cjs
+      - run: node --check reader.js
       - run: python -m pytest -q -rs
       - name: Inventory original essay citations and verify link safety
         run: python scripts/audit_references.py

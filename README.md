@@ -36,7 +36,7 @@ python scripts/build.py
 python -m http.server --directory site 8000
 ```
 
-Visit `http://localhost:8000`. The website includes optional local-state reader controls and browser speech in dependency-free JavaScript; the six essays remain readable with JavaScript disabled. There are no analytics, remote fonts, accounts, or server-side application requirements.
+Visit `http://localhost:8000`. The website includes optional browser-local reading-progress controls in dependency-free JavaScript; the six essays remain readable with JavaScript disabled. Public audio controls appear only for a full-length, reviewed recording. There are no analytics, remote fonts, accounts, or server-side application requirements.
 
 ## Import the exact six essays
 
@@ -132,28 +132,15 @@ The website intentionally contains no offline-download section or chapter downlo
 
 For a future narration, run `python scripts/prepare_narration.py --out narration-work` locally. The command generates six complete UTF-8 manuscripts, paragraph-bounded narration chunks and an integrity manifest. This produces **text only**. Recordings have yet to be produced, reviewed and added to the checksum-gated audio manifest. The resulting manuscripts should be reviewed by a narrator or used with a connected voice-production provider; voice quality, scientific pronunciation and chapter completeness need listening checks before any audio is published.
 
-## Browser-voice listening
+## Natural narration policy
 
-The site presents an optional **Listen** interface in browsers that support Web Speech synthesis and lack an approved MP3 recording for the essay. The browser supplies the voice. Available voices, their pronunciation and reliability differ by device, and some browser voices use online services. Browser narration is clearly distinguished from an editorially reviewed recording.
+The former site-owned browser text-to-speech interface was removed because the built-in system voices did not meet the publication's narration standard. A full-length, editorially accepted audio edition now uses the site's ordinary native HTML audio player. An unapproved essay remains fully readable as text, without a misleading Listen control. Visitors may still use their own accessibility technology independently of the site.
 
-Playback starts only on an explicit Play action. Readers choose speed and browser voice, pause and resume at short phrase boundaries, or move through original essay paragraphs. Position is stored optionally in browser-local storage; failures to access storage leave listening functional. No website-operated audio service or tracking is involved. Unsupported browsers retain the original reading experience with the control hidden. A reviewed MP3 recording, once available and SHA-256 validated, supersedes browser narration for its essay.
-
-Automated checks use mock speech engines; real voice quality and background playback on phones remain external acceptance criteria.
-
-
-### Browser narration interruption handling
-
-If the browser stops speech unexpectedly, the Listen controls enter an explicit paused state and retain the last short-phrase boundary. The reader can resume without encountering a disabled Play button. A `pagehide` event also pauses active speech to keep back/forward-cache restoration consistent. User-triggered Stop clears the saved position, while interrupted/paused playback retains it. These transitions are covered by simulated Web Speech regression tests; physical-device narration quality and background behavior still require external validation.
-
-
-### Linked-section listening
-
-Direct chapter links with a valid paragraph fragment (for example, `#p-03`) select the corresponding starting paragraph for browser narration, taking precedence over the older saved listening position. Switching sections using an in-essay anchor while audio is playing pauses narration, preserves the new position, and waits for an explicit Resume action. Invalid fragments are ignored. No navigation event triggers autoplay.
-
+The free Kokoro-82M local pipeline already prepares source-verified, unreviewed MP3 candidates; use the voice-comparison audition workflow before choosing one. ElevenLabs Multilingual v2 is a paid alternative suited to stable long-form narration. Its service-specific costs and rights must be verified before audio generation, and credentials must remain private. No narration is published without real reviewer listening and distribution-rights confirmation.
 
 ## Definitive MP3 release policy
 
-Browser speech synthesis remains available as a progressive enhancement.
+The former site-owned browser speech controls are retired. Only reviewed MP3s are eligible for public playback.
 Professionally narrated MP3 editions are published only after the author
 or another accountable reviewer has listened to each full recording, compared
 it with the source manuscript, checked scientific pronunciations and sound
@@ -295,7 +282,7 @@ unrecognized private files, symlink safety, and protected source paths.
 
 ### Headless-browser release checks
 
-The separate `.github/workflows/browser-regression.yml` job exercises the complete, strictly built publication in real Chromium over a loopback HTTP server. It checks all seven pages at 320, 390, 768 and 1440 pixels, paragraph deep links, actual previous/next navigation, saved-reading recovery, local-only history clearing and no-JavaScript access. The browser-speech service is deliberately mocked for interaction tests: this establishes DOM behavior, not audio quality, native mobile speech behavior or screen-reader acceptance. Run locally with `python -m pip install pytest playwright==1.56.0`, `python -m playwright install chromium` and `python -m pytest -q browser/verify_reader.py`. No browser-test dependency is delivered to website visitors.
+The separate `.github/workflows/browser-regression.yml` job exercises the complete, strictly built publication in real Chromium over a loopback HTTP server. It checks all seven pages at 320, 390, 768 and 1440 pixels, paragraph deep links, actual previous/next navigation, saved-reading recovery, local-only history clearing and no-JavaScript access. The tests verify that obsolete site-owned browser voices and citation-copy controls are absent; they do not establish narration quality, native mobile audio behaviour or screen-reader acceptance. Run locally with `python -m pip install pytest playwright==1.56.0`, `python -m playwright install chromium` and `python -m pytest -q browser/verify_reader.py`. No browser-test dependency is delivered to website visitors.
 
 The reader no longer overwrites a previous paragraph bookmark on initial render in a tall viewport. It updates the saved location only following deliberate scrolling, a valid paragraph deep link, a restored scrolled page or explicit Resume.
 

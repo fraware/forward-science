@@ -41,8 +41,6 @@
   const paragraphs = Array.from(article.querySelectorAll("p[id]"));
   const track = document.querySelector(".reading-progress span");
   const resume = document.querySelector(".resume-reading");
-  const citation = document.querySelector(".copy-citation");
-  const status = document.querySelector(".reader-status");
   const title = document.querySelector(".chapter-heading h1")?.textContent?.trim() || "essay";
   const prior = readState();
   if (prior?.slug === slug && prior.paragraph && document.getElementById(prior.paragraph)) {
@@ -90,17 +88,6 @@
   }, { passive: true });
   window.addEventListener("resize", schedule);
   schedule();
-
-  citation?.addEventListener("click", async () => {
-    const value = citation.dataset.citation;
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-      if (status) status.textContent = "Citation copied";
-    } catch {
-      if (status) status.textContent = "Select the page URL to share this essay";
-    }
-  });
 
   const audio = document.querySelector("audio[data-audio-for]");
   const speed = document.querySelector(".audio-speed");

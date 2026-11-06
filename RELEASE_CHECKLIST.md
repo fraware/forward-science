@@ -19,6 +19,14 @@ The six-essay publication is imported from the author export and verified agains
 - [ ] Review footnotes, scientific citations, equations, images, media embeds, alt text and internal anchors in each chapter.
 - [ ] Decide whether to correct typographical errors in the source publications; preserve a traceable edition history if changes are made.
 
+## P0 — natural narration and minimal controls
+
+- [x] Remove the site-owned browser speech interface, its obsolete production script, and the low-quality voice selector.
+- [x] Remove the Copy citation action, clipboard handler, and copied-citation feedback from all essays.
+- [ ] Listen to alternative neural voice samples from the pinned free Kokoro pipeline; choose the narrator only with editorial approval.
+- [ ] Evaluate a licensed ElevenLabs long-form sample if the local candidates fall short of natural, professional delivery.
+- [ ] Approve the complete six-essay recording set via the existing source-match, pronunciation, mastering, rights and full-length listening gates; test the native mobile audio player.
+
 ## P0 — deployment
 
 - [ ] Resolve domain name suitability and ownership. `forwardscience.com` is operated by an unrelated medical-device company; a third-party trademark record reports U.S. word-mark registration 5528220 (goods classes 005/010). Complete jurisdiction-appropriate naming and trademark review before selecting or promoting a custom domain. Domain availability alone does not establish freedom to use the name.
@@ -30,7 +38,7 @@ The six-essay publication is imported from the author export and verified agains
 - [x] Fail closed on stale MP3s, unexpected files, and symlinks in a reused generated publication directory.
 - [x] Implement a strict validator for complete private narrated-audio handoffs (original six recordings, manuscripts, independent ASR and unsigned reviewer template).
 - [ ] Complete physical-device accessibility and narration playback acceptance, including iOS and Android.
-- [x] Confirm dedicated Chromium browser-regression workflow on the latest `main` release ([successful run 42134299855](https://github.com/fraware/forward-science/actions/runs/42134299855)). Navigation, anchors, reader persistence, narrow layouts, and mocked speech controls were exercised in Chromium. Viewport emulation and mocked speech do not establish physical-device acceptance.
+- [x] Confirm dedicated Chromium browser-regression workflow on the latest `main` release ([successful run 42134299855](https://github.com/fraware/forward-science/actions/runs/42134299855)). Navigation, anchors, reader persistence, narrow layouts, and retired-voice control removal are checked in Chromium. Viewport emulation does not establish physical-device acceptance.
 - [ ] Check canonical URLs, sitemap, indexability and external preview metadata against final domain.
 
 ## P1 — distribution
@@ -44,7 +52,7 @@ The six-essay publication is imported from the author export and verified agains
 
 - All six original source post IDs, subtitles, and UTC publication dates were confirmed against the author's supplied export; original texts total 9,660 whitespace-delimited words.
 - All six text bodies passed HTML sanitization with normalized-text preservation and recorded source/rendered SHA-256 hashes.
-- A previous 14-test baseline covered source import, strict production build, provenance, metadata, and internal routes. The current GitHub release additionally runs the expanded Python suite and browser-speech tests; consult the latest CI job for its exact counts.
+- A previous 14-test baseline covered source import, strict production build, provenance, metadata, and internal routes. The current GitHub release additionally runs the expanded Python suite and reviewed-audio release tests; consult the latest CI job for its exact counts.
 - All seven pages were rendered in Chromium at 1440px, 768px, 390px and 320px (28 page-width checks), with no horizontal overflow.
 - A strict build with all six original bodies now passes; the no-content fixture still fails closed.
 - Browser navigation is exercised in GitHub Actions using Playwright/Chromium on a loopback HTTP server; the latest main-branch run succeeded. This does not establish native iOS/Android behavior or actual voice quality.

@@ -34,7 +34,7 @@ def preview_root(tmp_path: Path) -> Path:
     (root / "content" / "essays.json").write_bytes((ROOT / "content" / "essays.json").read_bytes())
     for template in (ROOT / "templates").iterdir():
         (root / "templates" / template.name).write_bytes(template.read_bytes())
-    for asset in ("styles.css", "favicon.svg", "reader.js", "device-narration.js"):
+    for asset in ("styles.css", "favicon.svg", "reader.js"):
         (root / asset).write_bytes((ROOT / asset).read_bytes())
     (root / "content" / "landmarks.json").write_bytes((ROOT / "content" / "landmarks.json").read_bytes())
     (root / "content" / "audio.json").write_bytes((ROOT / "content" / "audio.json").read_bytes())
@@ -149,7 +149,7 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     source = tmp_path / "source"
     shutil.copytree(ROOT / "content", source / "content")
     shutil.copytree(ROOT / "templates", source / "templates")
-    for asset in ("styles.css", "favicon.svg", "reader.js", "device-narration.js"):
+    for asset in ("styles.css", "favicon.svg", "reader.js"):
         shutil.copy2(ROOT / asset, source / asset)
     slug = "scientific-loop"
     media = source / "media" / f"{slug}.mp3"
@@ -202,18 +202,35 @@ def test_public_site_has_no_offline_downloads(tmp_path: Path) -> None:
         assert not soup.select(".download-editions, .chapter-download")
 
 
-def test_browser_narration_is_progressively_enhanced(tmp_path: Path) -> None:
-    """The browser-voice option is opt-in and separate from reviewed recordings."""
-    out = tmp_path / "spoken"
+def test_no_browser_tts_or_copy_citation_in_published_essays(tmp_path: Path) -> None:
+    """Only independently reviewed audio may expose public playback controls."""
+    out = tmp_path / "voice-free"
     module.build(ROOT, out, "https://example.org/site", strict=True)
-    assert (out / "device-narration.js").is_file()
+    assert not (out / "device-narration.js").exists()
+    javascript = (out / "reader.js").read_text(encoding="utf-8")
+    assert "copy-citation" not in javascript
+    assert "Citation copied" not in javascript
     for essay in module.load_essays(ROOT):
         page = BeautifulSoup((out / essay["slug"] / "index.html").read_text(), "html.parser")
-        assert page.select_one('script[src="../device-narration.js"]') is not None
-        assert page.select_one('[data-device-narration][hidden]') is not None
-        assert page.select_one('[data-speech-play]') is not None
-        assert page.select_one('[data-speech-status][role="status"]') is not None
+        assert page.select_one('script[src="../device-narration.js"]') is None
+        assert page.select_one("[data-device-narration]") is None
+        assert page.select_one("[data-speech-play]") is None
+        assert page.select_one(".copy-citation") is None
+        assert page.select_one(".reader-status") is None
+        assert "Copy citation" not in page.get_text(" ", strip=True)
         assert page.select_one('article[aria-label="Full essay"]') is not None
+        assert page.select_one("audio") is None
+        assert page.select_one(".resume-reading[hidden]") is not None
+
+
+def test_incremental_build_removes_legacy_speech_asset(tmp_path: Path) -> None:
+    """Rebuilding into an old site must retract previously shipped system TTS."""
+    out = tmp_path / "old-site"
+    module.build(ROOT, out, "https://example.org/site", strict=True)
+    old = out / "device-narration.js"
+    old.write_text("/* no longer published */", encoding="utf-8")
+    module.build(ROOT, out, "https://example.org/site", strict=True)
+    assert not old.exists()
 
 
 def test_strict_build_retracts_removed_audio(tmp_path: Path) -> None:

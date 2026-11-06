@@ -224,6 +224,8 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
     obsolete_downloads = output / "downloads"
     if obsolete_downloads.is_dir():
         shutil.rmtree(obsolete_downloads)
+    # Retract the former system-voice JavaScript when rebuilding an old site.
+    (output / "device-narration.js").unlink(missing_ok=True)
     (output / "index.html").write_text(
         env.get_template("index.html.j2").render(essays=essays, base_url=base_url), encoding="utf-8"
     )
@@ -237,7 +239,7 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
             base_url=base_url,
         )
         (page / "index.html").write_text(html, encoding="utf-8")
-    for filename in ("styles.css", "favicon.svg", "reader.js", "device-narration.js"):
+    for filename in ("styles.css", "favicon.svg", "reader.js"):
         shutil.copy2(root / filename, output / filename)
     for essay in essays:
         if essay["audio"]:
@@ -261,7 +263,7 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
         # Catch stray private exports or stale assets before Pages uploads it.
         allowed = {
             "index.html", "styles.css", "favicon.svg", "reader.js",
-            "device-narration.js", ".nojekyll", "sitemap.xml", "robots.txt",
+            ".nojekyll", "sitemap.xml", "robots.txt",
         }
         allowed.update(f"{essay['slug']}/index.html" for essay in essays)
         allowed.update(essay["audio"] for essay in essays if essay["audio"])

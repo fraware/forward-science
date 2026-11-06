@@ -1,7 +1,7 @@
 """Real Chromium integration checks for Forward Science's static reader.
 
 Runs in an isolated GitHub Actions job, using a loopback HTTP server. Browser
-speech is mocked only to test interface transitions, never sound quality.
+only reviewed audio editions appear; no browser voice fallback is shipped.
 """
 from __future__ import annotations
 
@@ -145,48 +145,25 @@ def test_home_continue_and_clear_are_local(server_url, browser):
     context.close()
 
 
-MOCK_SPEECH = """
-(() => {
-  window.__spoken = [];
-  Object.defineProperty(window, 'SpeechSynthesisUtterance', {
-    configurable: true, value: class Utterance { constructor(text) { this.text = text; } }
-  });
-  Object.defineProperty(window, 'speechSynthesis', {
-    configurable: true, value: {
-      getVoices: () => [{name:'Test local voice', lang:'en-US',
-                          voiceURI:'local:test',localService:true}],
-      addEventListener() {},
-      speak(utterance) { window.__spoken.push(utterance); },
-      cancel() {}
-    }
-  });
-})();
-"""
-
-
-def test_browser_voice_ui_no_autoplay_and_section_reposition(server_url, browser):
-    """Actual DOM wiring with a fake speech engine, never a voice-quality claim."""
+def test_no_browser_voice_or_copy_citation_even_if_supported(server_url, browser):
+    """No site-owned Web Speech or clipboard controls may appear in an essay."""
     context = browser.new_context()
     page = context.new_page()
-    page.add_init_script(MOCK_SPEECH)
-    page.goto(server_url + "/scientific-loop/")
-    assert page.locator("[data-device-narration]").is_visible()
-    assert page.evaluate("window.__spoken.length") == 0
-    page.locator("[data-speech-play]").click()
-    assert page.evaluate("window.__spoken.length") == 1
-    first_text = page.evaluate("window.__spoken[0].text")
-    assert first_text in page.locator("article p[id]").first.inner_text()
-    page.locator("[data-speech-pause]").click()
-    assert page.locator("[data-speech-play]").inner_text() == "Resume"
-    page.locator(".reader-toc summary").click()
-    anchor = page.locator(".reader-toc nav a").nth(2)
-    target = anchor.get_attribute("href")
-    anchor.click()
-    assert page.evaluate("location.hash") == target
-    page.locator("[data-speech-play]").click()
-    assert page.evaluate("window.__spoken.length") == 2
-    page.locator("[data-speech-stop]").click()
-    assert page.locator("[data-speech-stop]").is_disabled()
+    page.add_init_script("""() => {
+      Object.defineProperty(window, 'speechSynthesis', {
+        configurable: true,
+        value: { speak() { throw Error('speech synthesis must not run'); } }
+      });
+    }""")
+    for slug in SLUGS:
+        page.goto(server_url + f"/{slug}/")
+        assert page.locator(".copy-citation").count() == 0
+        assert page.locator(".reader-status").count() == 0
+        assert page.locator("[data-device-narration]").count() == 0
+        assert page.locator("[data-speech-play]").count() == 0
+        assert page.locator('script[src*="device-narration"]').count() == 0
+        assert page.locator("audio").count() == 0
+        assert page.locator("article.prose p").count() >= 10
     context.close()
 
 
@@ -195,7 +172,6 @@ def test_no_javascript_still_has_text_and_navigation(server_url, browser):
     page = context.new_page()
     page.goto(server_url + "/extension-agents/")
     assert page.locator("article.prose p").count() >= 10
-    assert page.locator("[data-device-narration]").is_hidden()
     assert page.locator(".reader-toc nav a").count() >= 3
     page.locator(".chapter-navigation__next").click()
     assert page.url.endswith("/political-economy/")
