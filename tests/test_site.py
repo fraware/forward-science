@@ -175,6 +175,12 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     assert player is not None
     assert player["src"] == "../media/scientific-loop.mp3?v=" + hashlib.sha256(data).hexdigest()[:12]
     assert player["data-audio-sha"] == hashlib.sha256(data).hexdigest()
+    disclosure = page.select_one("details#listen.audio-edition")
+    assert disclosure is not None and not disclosure.has_attr("open")
+    assert disclosure.select_one("summary") is not None
+    assert "Listen to this essay" in disclosure.select_one("summary").get_text(" ", strip=True)
+    assert player["preload"] == "none" and not player.has_attr("autoplay")
+    assert player.find_parent("details") is disclosure
     assert page.select_one(".audio-skip-back[disabled]") is not None
     assert page.select_one(".audio-skip-forward[disabled]") is not None
     assert page.select_one(".audio-resume[hidden]") is not None

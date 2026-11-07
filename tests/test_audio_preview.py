@@ -70,8 +70,11 @@ def test_preview_render_shows_honest_status_native_controls_and_no_autoplay():
         essay=essay, essays=essays, previous=None, next=essays[1], base_url="https://example.org",
     )
     page = BeautifulSoup(html, "html.parser")
-    title = page.select_one("#listen .audio-edition__title")
-    assert title and "Preview" in title.get_text()
+    disclosure = page.select_one("details#listen.audio-edition")
+    assert disclosure is not None and not disclosure.has_attr("open")
+    summary = disclosure.select_one("summary")
+    assert summary is not None and "Listen to this essay" in summary.get_text(" ", strip=True)
+    assert "AI preview" in summary.get_text(" ", strip=True)
     description = page.select_one("#listen .audio-edition__description").get_text(" ", strip=True)
     assert "AI narration by Michael" in description
     assert "not yet received full editorial listening review" in description
@@ -79,7 +82,9 @@ def test_preview_render_shows_honest_status_native_controls_and_no_autoplay():
     assert player["src"] == f"../media/preview-{essay['slug']}.mp3?v={sha[:12]}"
     assert player["data-audio-sha"] == sha
     assert player.has_attr("controls")
+    assert player["preload"] == "none"
     assert not player.has_attr("autoplay")
+    assert player.find_parent("details") is disclosure
     assert page.select_one(".audio-skip-back") is not None
     assert page.select_one(".audio-skip-forward") is not None
     assert page.select_one(".audio-resume") is not None

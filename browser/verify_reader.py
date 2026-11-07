@@ -254,6 +254,48 @@ def test_no_browser_voice_or_copy_citation_even_if_supported(server_url, browser
 
 
 
+def test_optional_audio_disclosure_and_direct_listening_link(server_url, browser):
+    """A reading-only visit leaves audio closed; an explicit choice reveals controls."""
+    context = browser.new_context(viewport={"width": 390, "height": 844})
+    page = context.new_page()
+    page.goto(server_url + "/scientific-loop/", wait_until="load")
+
+    # The local browser build contains no published MP3, so exercise the same
+    # progressive disclosure with an inert media element and real reader.js.
+    page.evaluate("""() => {
+      const details = document.createElement('details');
+      details.id = 'listen';
+      details.className = 'audio-edition';
+      details.innerHTML = '<summary>Listen to this essay</summary>' +
+        '<div class="audio-edition__content">' +
+        '<audio controls preload="none" data-audio-for="scientific-loop" ' +
+        'data-audio-sha="' + 'a'.repeat(64) + '"></audio></div>';
+      document.querySelector('.reading-tools').appendChild(details);
+    }""")
+    page.evaluate("""() => new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '../reader.js?optional-disclosure-test=1';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    })""")
+    assert page.locator("details#listen").evaluate("(element) => element.open") is False
+    assert page.locator("details#listen audio").get_attribute("preload") == "none"
+    assert page.locator("details#listen audio").evaluate("(audio) => audio.paused") is True
+
+    page.locator("#listen > summary").click()
+    page.wait_for_function("() => document.querySelector('#listen audio').preload === 'metadata'")
+    assert page.locator("details#listen").evaluate("(element) => element.open") is True
+    page.locator("#listen > summary").click()
+    assert page.locator("details#listen").evaluate("(element) => element.open") is False
+
+    # The homepage Listen link uses #listen. It expands the player without autoplay.
+    page.evaluate("() => { location.hash = '#listen'; }")
+    page.wait_for_function("() => document.querySelector('#listen').open")
+    assert page.locator("#listen audio").evaluate("(audio) => audio.paused") is True
+    context.close()
+
+
 def test_audio_resume_skip_rate_and_completion_with_injected_media(server_url, browser):
     """The public manifest stays empty; synthetic audio exists only inside Chromium."""
     context = browser.new_context()

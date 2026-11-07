@@ -246,8 +246,16 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .continue-reading { margin-bottom: 38px; border-top: 1px solid var(--line); padding-top: 22px; font: 14px/1.6 var(--sans); }
 .continue-reading a { display: inline-block; font: 18px/1.5 var(--serif); margin: 12px 18px 0 0; }
 .continue-reading button { display: inline-block; font-size: 12px; }
-.audio-edition { margin-top: 24px; padding: 20px 0; border-top: 1px solid var(--line); }
-.audio-edition__title { font-weight: 600; margin: 0 0 12px; }
+/* Reading is the default. Narration is a quiet, opt-in disclosure. */
+.audio-edition { margin-top: 18px; padding: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); scroll-margin-top: 24px; }
+.audio-edition > summary { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 13px 0; list-style: none; }
+.audio-edition > summary::-webkit-details-marker { display: none; }
+.audio-edition > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.audio-edition__title { font: 400 15px/1.5 var(--serif); color: var(--ink); }
+.audio-edition__note { margin-left: auto; font: italic 12px/1.5 var(--serif); color: var(--muted); }
+.audio-edition > summary::after { content: "+"; width: 15px; text-align: center; font: 18px/1 var(--serif); color: var(--accent); }
+.audio-edition[open] > summary::after { content: "−"; }
+.audio-edition__content { padding: 9px 0 19px; }
 .audio-edition audio { display: block; width: 100%; margin-bottom: 12px; }
 .audio-edition__tools { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; font: 12px/1.5 var(--sans); }
 .audio-edition__tools button { cursor: pointer; min-height: 36px; border: 1px solid var(--line); color: var(--ink); background: transparent; border-radius: 3px; padding: 7px 12px; font: inherit; }
@@ -259,4 +267,4 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .audio-feedback { min-height: 1em; color: var(--muted); font: 12px/1.5 var(--sans); margin: 5px 0 0; }
 @media print { .reading-tools, .reading-progress, .continue-reading { display: none !important; } }
 
- .audio-edition__description { font: 12px/1.6 var(--sans); color: var(--muted); margin: 0 0 14px; }
+.audio-edition__description { font: 12px/1.6 var(--sans); color: var(--muted); margin: 0 0 14px; }

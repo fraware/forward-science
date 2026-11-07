@@ -95,6 +95,27 @@
   const audio = document.querySelector("audio[data-audio-for]");
   if (!audio) return;
 
+  const disclosure = document.querySelector("details#listen.audio-edition");
+  if (disclosure) {
+    // Direct links from the series index are an explicit listening choice.
+    // Open the player without starting playback.
+    const openLinkedAudio = () => {
+      if (window.location.hash === "#listen") disclosure.open = true;
+    };
+    disclosure.addEventListener("toggle", () => {
+      if (disclosure.open) {
+        // Avoid any MP3 request on an ordinary reading-only page visit.
+        audio.preload = "metadata";
+        audio.load();
+      } else if (!audio.paused) {
+        // Closing the player must not leave invisible audio playing.
+        audio.pause();
+      }
+    });
+    window.addEventListener("hashchange", openLinkedAudio);
+    openLinkedAudio();
+  }
+
   const audioHash = audio.dataset.audioSha;
   const rateKey = "forward-science:audio-rate:v1";
   const speed = document.querySelector(".audio-speed");

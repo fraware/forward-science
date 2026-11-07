@@ -52,8 +52,12 @@
       </details>
       <button type="button" class="resume-reading" hidden>Resume reading</button>
       {% if essay.audio %}
-      <div id="listen" class="audio-edition" aria-label="{{ 'Preview narration' if essay.audio_preview else 'Audio edition' }}">
-        <p class="audio-edition__title">{{ 'Listen to this essay · Preview' if essay.audio_preview else 'Listen to this essay' }}</p>
+      <details id="listen" class="audio-edition" aria-label="{{ 'Optional preview narration' if essay.audio_preview else 'Optional audio edition' }}">
+        <summary>
+          <span class="audio-edition__title">Listen to this essay</span>
+          <span class="audio-edition__note">{{ 'AI preview' if essay.audio_preview else 'Optional audio' }}</span>
+        </summary>
+        <div class="audio-edition__content">
         {% if essay.audio_preview %}
         <p class="audio-edition__description">AI narration by Michael · 1.10× speaking pace. This recording is a preview and has not yet received full editorial listening review. The complete essay appears below.</p>
         {% elif essay.audio_voice %}
@@ -61,7 +65,7 @@
         {% else %}
         <p class="audio-edition__description">The complete written transcript follows below.</p>
         {% endif %}
-        <audio controls preload="metadata" data-audio-for="{{ essay.slug }}" data-audio-sha="{{ essay.audio_sha256 }}" src="../{{ essay.audio }}?v={{ essay.audio_sha256[:12] }}">Your browser does not support audio playback. The complete transcript is below.</audio>
+        <audio controls preload="none" data-audio-for="{{ essay.slug }}" data-audio-sha="{{ essay.audio_sha256 }}" src="../{{ essay.audio }}?v={{ essay.audio_sha256[:12] }}">Your browser does not support audio playback. The complete transcript is below.</audio>
         <div class="audio-edition__tools">
           <button type="button" class="audio-skip-back" aria-label="Rewind 15 seconds" disabled>−15 s</button>
           <button type="button" class="audio-skip-forward" aria-label="Skip forward 30 seconds" disabled>+30 s</button>
@@ -71,7 +75,8 @@
           </select></label>
         </div>
         <p class="audio-feedback" role="status" aria-live="polite"></p>
-      </div>
+        </div>
+      </details>
       {% endif %}
     </section>
     <div class="reading-progress" aria-hidden="true"><span></span></div>
