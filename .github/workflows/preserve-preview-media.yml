@@ -1,0 +1,66 @@
+name: Preserve public narration preview media
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/preserve-preview-media.yml
+permissions:
+  contents: write
+  actions: read
+jobs:
+  preserve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install source and MP3 verification dependencies
+        run: |
+          python -m pip install -r requirements-build.txt
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
+      - name: Preserve exact six source-verified preview recordings in a versioned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TAG=forward-science-audio-previews-2026-11-07
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo 'Existing preview release found; leaving it unchanged'
+            exit 0
+          fi
+          RUN_ID=42388856204
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq .head_sha)" = 7c2fb9d630f733c966245832adbe1624d691edcd
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq .conclusion)" = success
+          mkdir -p narration-preview preview-release
+          gh run download "$RUN_ID" \
+            --name FOR-EDITORIAL-REVIEW-ONLY-Michael-1_10x-six-narrations \
+            --dir narration-preview
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          from scripts.verify_audio_previews import validate
+          base = Path("narration-preview")
+          checked = validate(Path("."), base)
+          assert len(checked) == 6
+          destination = Path("preview-release/Forward-Science-Michael-1.10x-previews.zip")
+          with ZipFile(destination, "w", compression=ZIP_DEFLATED, compresslevel=6) as out:
+              for path in sorted(base.rglob("*")):
+                  if path.is_file():
+                      out.write(path, path.relative_to(base).as_posix())
+          assert destination.stat().st_size > 40_000_000
+          print("Immutable source-checksummed six-recording preview archive:", destination)
+          PY
+          gh release create "$TAG" \
+            preview-release/Forward-Science-Michael-1.10x-previews.zip \
+            --target "$GITHUB_SHA" \
+            --title "Forward Science — narrated previews (Michael)" \
+            --notes "Six AI-generated essay narrations by Kokoro am_michael at 1.10× speaking speed. These are publicly listenable previews, not final reviewed audio editions. Source manuscripts and each recording's checksum are pinned in content/audio-previews.json. The publication retains the original written essays and does not claim full editorial listening acceptance." \
+            --prerelease
+          gh release view "$TAG" --json name,isPrerelease,assets \
+            --jq '{title: .name, isPreview: .isPrerelease, assetCount: (.assets | length)}'
