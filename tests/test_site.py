@@ -324,7 +324,7 @@ def test_editorial_typography_has_no_remote_font_dependency() -> None:
     homepage = (ROOT / "templates/index.html.j2").read_text(encoding="utf-8")
     assert '<h1 id="page-title">Forward Science</h1>' in homepage
     assert 'FORWARD SCIENCE<span' not in homepage
-    assert 'A series in six parts' in homepage
+    assert 'A series in six parts' not in homepage
     for template in ("index.html.j2", "essay.html.j2"):
         html = (ROOT / "templates" / template).read_text(encoding="utf-8")
         assert 'name="theme-color" content="#faf9f6"' in html
