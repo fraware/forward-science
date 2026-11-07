@@ -19,13 +19,6 @@ REMOVED_PUBLIC_ASSETS = (
     "downloads/forward-science.pdf",
     "downloads/forward-science.epub",
     "downloads/forward-science.md",
-    # Previously published recordings must disappear with the retired player.
-    "media/preview-forward-science.mp3",
-    "media/preview-forward-deployed-scientists.mp3",
-    "media/preview-scientific-loop.mp3",
-    "media/preview-extension-agents.mp3",
-    "media/preview-political-economy.mp3",
-    "media/preview-future-laboratory.mp3",
 )
 LARGE_FILE_BYTES = 3_000_000
 
@@ -82,7 +75,7 @@ def check_once(
             continue
         route = published_path(relative)
         url = origin + "/" + route
-        # Published narration must match the approved media checksum byte-for-byte.
+        # Published audio must match the source-pinned MP3 checksum byte-for-byte.
         # A HEAD/Content-Length check cannot detect same-length audio substitution.
         method = ("GET" if asset.suffix.lower() == ".mp3"
                   or asset.stat().st_size <= LARGE_FILE_BYTES else "HEAD")

@@ -1,6 +1,6 @@
 /**
  * A local, non-persistent reading-position indicator for the six essays.
- * No reading history, audio player, accounts, tracking, or network requests.
+ * No persistent reading history, accounts, analytics or unsolicited audio playback.
  */
 (() => {
   "use strict";
@@ -31,4 +31,22 @@
   window.addEventListener("scroll", schedule, { passive: true });
   window.addEventListener("resize", schedule);
   schedule();
+
+  const disclosure = document.querySelector("details#listen.listen-option");
+  const audio = disclosure?.querySelector("audio[data-essay-audio]");
+  if (disclosure && audio) {
+    // Opening is a user choice; loading metadata never starts playback.
+    const openFromLink = () => {
+      if (window.location.hash === "#listen") disclosure.open = true;
+    };
+    disclosure.addEventListener("toggle", () => {
+      if (disclosure.open) {
+        audio.preload = "metadata";
+      } else if (!audio.paused) {
+        audio.pause();
+      }
+    });
+    window.addEventListener("hashchange", openFromLink);
+    openFromLink();
+  }
 })();

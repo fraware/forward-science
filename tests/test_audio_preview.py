@@ -46,8 +46,8 @@ def test_previews_refused_without_exact_private_media(tmp_path):
         preview.validate(ROOT, folder)
 
 
-def test_preview_metadata_does_not_render_unrequested_public_controls():
-    """Recorded drafts remain verifiable without adding a website audio player."""
+def test_unreviewed_audio_is_opt_in_with_native_controls():
+    """A source-pinned recording appears only inside a closed listener disclosure."""
     from sys import path as syspath
     syspath.insert(0, str(ROOT / "scripts"))
     from build import load_essays
@@ -79,7 +79,16 @@ def test_preview_metadata_does_not_render_unrequested_public_controls():
     page = BeautifulSoup(essay_html, "html.parser")
     home = BeautifulSoup(homepage, "html.parser")
     assert page.select_one("article.prose") is not None
-    assert page.select_one("audio, #listen, .audio-edition, .resume-reading") is None
+    disclosure = page.select_one("details#listen.listen-option")
+    assert disclosure is not None and not disclosure.has_attr("open")
+    assert disclosure.select_one("summary").get_text(" ", strip=True) == "Listen to this essay"
+    assert disclosure.select_one(".listen-option__note").get_text(strip=True) == "Synthetic narration"
+    audio = disclosure.select_one("audio[data-essay-audio][controls]")
+    assert audio is not None
+    assert audio["preload"] == "none"
+    assert not audio.has_attr("autoplay")
+    assert audio["src"] == f"../media/preview-{essay['slug']}.mp3?v={sha[:12]}"
+    assert page.select_one(".audio-edition, .resume-reading") is None
     assert home.select_one(".essay__metadata, #continue-reading") is None
     assert home.select_one(f'a[href="{essay["slug"]}/#listen"]') is None
     assert not any(

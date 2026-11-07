@@ -50,6 +50,17 @@
           <ol>{% for landmark in essay.landmarks %}<li><a href="#{{ landmark.anchor }}">{{ landmark.label }}</a></li>{% endfor %}</ol>
         </nav>
       </details>
+      {% if essay.audio %}
+      <details class="listen-option" id="listen">
+        <summary>Listen to this essay</summary>
+        <div class="listen-option__body">
+          <p class="listen-option__note">{{ 'Synthetic narration' if essay.audio_voice and essay.audio_voice.type == 'synthetic' else 'Audio narration' }}</p>
+          <audio controls preload="none" data-essay-audio
+                 src="../{{ essay.audio }}?v={{ essay.audio_sha256[:12] }}"
+                 aria-label="Audio narration of {{ essay.title }}">Your browser does not support audio playback.</audio>
+        </div>
+      </details>
+      {% endif %}
     </section>
     <div class="reading-progress" aria-hidden="true"><span></span></div>
     {% endif %}

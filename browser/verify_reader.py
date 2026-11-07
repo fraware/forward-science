@@ -1,7 +1,7 @@
 """Real Chromium integration checks for Forward Science's static reader.
 
 Runs in an isolated GitHub Actions job, using a loopback HTTP server. Browser
-no narration or persistent reading history is published on the website.
+optional narration is closed by default; persistent reading history is absent.
 """
 from __future__ import annotations
 
@@ -241,6 +241,52 @@ def test_no_browser_voice_or_copy_citation_even_if_supported(server_url, browser
         assert page.locator("article.prose p").count() >= 10
     context.close()
 
+
+
+def test_optional_audio_player_is_closed_and_stops_when_collapsed(server_url, browser):
+    """A reader explicitly opens the audio controls; closing stops narration."""
+    context = browser.new_context(viewport={"width": 390, "height": 844})
+    page = context.new_page()
+    page.goto(server_url + "/scientific-loop/", wait_until="load")
+    page.evaluate("""() => {
+      const details = document.createElement('details');
+      details.id = 'listen';
+      details.className = 'listen-option';
+      details.innerHTML = '<summary>Listen to this essay</summary>' +
+          '<div class="listen-option__body">' +
+          '<audio controls preload="none" data-essay-audio></audio></div>';
+      document.querySelector('.reading-tools').appendChild(details);
+      const audio = details.querySelector('audio');
+      window.__pauseCalls = 0;
+      window.__playCalls = 0;
+      Object.defineProperty(audio, 'paused', {get: () => false});
+      audio.pause = () => { window.__pauseCalls += 1; };
+      audio.play = () => { window.__playCalls += 1; return Promise.resolve(); };
+    }""")
+    page.evaluate("""() => new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = '../reader.js?test=opt-in';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    })""")
+    details = page.locator("details#listen")
+    assert details.evaluate("(el) => el.open") is False
+    assert page.locator("#listen audio").get_attribute("preload") == "none"
+    assert page.evaluate("window.__playCalls") == 0
+    page.locator("#listen > summary").click()
+    page.wait_for_function(
+        "() => document.querySelector('#listen audio').preload === 'metadata'"
+    )
+    assert details.evaluate("(el) => el.open") is True
+    assert page.evaluate("window.__playCalls") == 0
+    page.locator("#listen > summary").click()
+    page.wait_for_function("() => window.__pauseCalls === 1")
+    assert details.evaluate("(el) => el.open") is False
+    page.evaluate("() => { location.hash = '#listen'; }")
+    page.wait_for_function("() => document.querySelector('#listen').open")
+    assert page.evaluate("window.__playCalls") == 0
+    context.close()
 
 
 def test_no_javascript_still_has_text_and_navigation(server_url, browser):

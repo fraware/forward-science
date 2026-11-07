@@ -25,7 +25,7 @@ def fixture_site(tmp_path: Path) -> Path:
 def mock_transport(site: Path, *, corrupt: str = "", missing: str = ""):
     def transport(url: str, method: str):
         relative = url.split("https://example.org/forward-science/", 1)[1]
-        if relative.startswith(("downloads/", "media/preview-")):
+        if relative.startswith("downloads/"):
             return 404, b"", {}
         if missing and relative == missing:
             return 404, b"", {}
@@ -106,18 +106,21 @@ def test_full_mp3_download_detects_same_length_tampering(tmp_path: Path, monkeyp
                for url, method in requested)
 
 
-def test_previous_public_narration_urls_are_retired(tmp_path: Path):
-    """Deployment must prove that all six previously public MP3s return 404."""
+def test_optional_audio_assets_are_checked_not_blacklisted(tmp_path: Path):
+    """Audio under the preview path is a live asset, verified byte for byte."""
+    assert not any(route.startswith("media/preview-") for route in module.REMOVED_PUBLIC_ASSETS)
     site = fixture_site(tmp_path)
-    assert len([
-        route for route in module.REMOVED_PUBLIC_ASSETS
-        if route.startswith("media/preview-") and route.endswith(".mp3")
-    ]) == 6
+    media = site / "media"
+    media.mkdir()
+    (media / "preview-forward-science.mp3").write_bytes(b"preview-media-payload")
+    assert module.check_once(site, "https://example.org/forward-science", mock_transport(site)) == []
 
-    def transport(url, method):
-        if "/media/preview-" in url:
-            return 200, b"old public voice", {}
-        return mock_transport(site)(url, method)
+    def corrupted(url, method):
+        status, data, headers = mock_transport(site)(url, method)
+        if url.endswith("/media/preview-forward-science.mp3"):
+            assert method == "GET"
+            return status, b"X" + data[1:], headers
+        return status, data, headers
 
-    errors = module.check_once(site, "https://example.org/forward-science", transport)
-    assert len([e for e in errors if "media/preview-" in e]) == 6
+    errors = module.check_once(site, "https://example.org/forward-science", corrupted)
+    assert any("media/preview-forward-science.mp3: delivered bytes differ" in e for e in errors)

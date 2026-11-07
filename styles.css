@@ -237,3 +237,15 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .prose p[id] { scroll-margin-top: 32px; }
 @media print { .reading-tools, .reading-progress { display: none !important; } }
 
+
+/* An optional listening control, subordinate to the written essay. */
+.listen-option { border-bottom: 1px solid var(--line); }
+.listen-option > summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 12px 0; cursor: pointer; list-style: none; font: 400 16px/1.5 var(--serif); }
+.listen-option > summary::-webkit-details-marker { display: none; }
+.listen-option > summary::after { content: "+"; color: var(--accent); font: 20px/1 var(--serif); }
+.listen-option[open] > summary::after { content: "−"; }
+.listen-option > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.listen-option__body { padding: 8px 0 19px; }
+.listen-option__note { margin: 0 0 9px; font: italic 13px/1.5 var(--serif); color: var(--muted); }
+.listen-option audio { display: block; max-width: 100%; width: 100%; }
+@media print { .listen-option { display: none; } }

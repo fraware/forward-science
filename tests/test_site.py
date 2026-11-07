@@ -171,9 +171,13 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="Suspicious MP3 size|listening review"):
         module.build(source, tmp_path / "unreviewed", None, strict=True)
     page = BeautifulSoup((site / slug / "index.html").read_text(), "html.parser")
-    # The audio archive retains file integrity checks, though the website
-    # intentionally exposes no player or narration labels.
-    assert page.select_one("audio, #listen, .audio-edition") is None
+    disclosure = page.select_one("details#listen.listen-option")
+    assert disclosure is not None and not disclosure.has_attr("open")
+    assert disclosure.select_one("summary").get_text(strip=True) == "Listen to this essay"
+    player = disclosure.select_one("audio[data-essay-audio]")
+    assert player is not None and player["preload"] == "none"
+    assert player.has_attr("controls") and not player.has_attr("autoplay")
+    assert player["src"] == "../media/scientific-loop.mp3?v=" + hashlib.sha256(data).hexdigest()[:12]
     assert "AI preview" not in page.get_text(" ", strip=True)
     assert (site / "media" / f"{slug}.mp3").read_bytes() == data
     media.write_bytes(b"tampered")
