@@ -95,6 +95,8 @@ def test_classic_editorial_typography_at_mobile_and_desktop(server_url, browser)
           };
         }""")
         assert home["title"] == "Forward Science"
+        assert page.title() == "Forward Science"
+        assert page.locator('meta[name="description"]').get_attribute("content") == "Forward Science"
         assert home["wordmark"] == "Forward Science"
         assert "Baskerville" in home["headingFont"]
         assert "Palatino Linotype" in home["bodyFont"]
@@ -103,6 +105,8 @@ def test_classic_editorial_typography_at_mobile_and_desktop(server_url, browser)
         assert home["overflowing"] is False
 
         page.goto(server_url + "/scientific-loop/", wait_until="load")
+        assert page.title() == "Forward Science"
+        assert page.locator('meta[name="description"]').get_attribute("content") == "Forward Science"
         essay = page.evaluate("""() => {
           const heading = getComputedStyle(document.querySelector('.chapter-heading'));
           const prose = document.querySelector('article.prose');

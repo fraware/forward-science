@@ -111,7 +111,7 @@ def test_published_pages_preserve_source_and_omit_export_footer(tmp_path: Path) 
         assert page.select_one('meta[property="og:url"]')["content"] == canonical
         assert page.select_one('meta[property="og:site_name"]')["content"] == "Forward Science"
         if essay["number"] == "00":
-            assert page.title.string == "Forward Science — Mateo H. Petel"
+            assert page.title.string == "Forward Science"
 
 def test_landmark_navigation_is_semantically_valid(tmp_path: Path) -> None:
     """Curated destinations must match real paragraphs without altering source."""
@@ -398,3 +398,19 @@ def test_public_homepage_omits_progress_and_essay_action_metadata(tmp_path: Path
         assert page.select_one("article.prose") is not None
         assert page.select_one("#listen, .audio-edition, audio, .resume-reading") is None
     assert not (out / "media").exists()
+
+
+def test_browser_tab_title_and_description_use_only_publication_name(tmp_path: Path) -> None:
+    """Neither homepage nor article tabs identify the author or use punctuation suffixes."""
+    out = tmp_path / "tab-metadata"
+    essays = module.build(ROOT, out, "https://example.org/forward-science", strict=True)
+    for path in [out / "index.html"] + [
+        out / essay["slug"] / "index.html" for essay in essays
+    ]:
+        page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        assert page.title is not None
+        assert page.title.get_text(strip=True) == "Forward Science"
+        meta = page.select_one('meta[name="description"]')
+        assert meta is not None
+        assert meta["content"] == "Forward Science"
+        assert "—" not in page.title.get_text()
