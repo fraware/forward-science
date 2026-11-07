@@ -54,6 +54,7 @@
             <p class="essay__subtitle">{{ e.subtitle }}</p>
             <p class="essay__summary">{{ e.summary }}</p>
             <p class="essay__metadata"><time datetime="{{ e.date }}">{{ e.date_long }}</time> <span aria-hidden="true">·</span> <a href="{{ e.slug }}/">{{ 'Read the essay' if e.complete else 'About this essay' }}</a>
+              {% if e.audio_preview %}<span aria-hidden="true">·</span> <a href="{{ e.slug }}/#listen">Listen (preview)</a>{% elif e.audio %}<span aria-hidden="true">·</span> <a href="{{ e.slug }}/#listen">Listen</a>{% endif %}
               {% if not e.complete %}<span aria-hidden="true">·</span> <a href="{{ e.original_url }}" target="_blank" rel="noopener noreferrer">Full text on Substack <span aria-hidden="true">↗</span></a>{% endif %}
             </p>
           </div>

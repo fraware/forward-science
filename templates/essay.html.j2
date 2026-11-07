@@ -45,9 +45,11 @@
       </details>
       <button type="button" class="resume-reading" hidden>Resume reading</button>
       {% if essay.audio %}
-      <div class="audio-edition" aria-label="Audio edition">
-        <p class="audio-edition__title">Listen to this essay</p>
-        {% if essay.audio_voice %}
+      <div id="listen" class="audio-edition" aria-label="{{ 'Preview narration' if essay.audio_preview else 'Audio edition' }}">
+        <p class="audio-edition__title">{{ 'Listen to this essay · Preview' if essay.audio_preview else 'Listen to this essay' }}</p>
+        {% if essay.audio_preview %}
+        <p class="audio-edition__description">AI narration by Michael · 1.10× speaking pace. This recording is a preview and has not yet received full editorial listening review. The complete essay appears below.</p>
+        {% elif essay.audio_voice %}
         <p class="audio-edition__description">{{ "Synthetic narration" if essay.audio_voice.type == "synthetic" else "Human narration" }} · {{ essay.audio_voice.name }} · {{ essay.audio_voice.provider }}. The full written transcript follows below.</p>
         {% else %}
         <p class="audio-edition__description">The complete written transcript follows below.</p>

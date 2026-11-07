@@ -89,7 +89,7 @@
   window.addEventListener("resize", schedule);
   schedule();
 
-  // The media player appears only for an approved, SHA-256 verified MP3.
+  // The media player appears for source-pinned public previews or approved MP3s.
   // Resume markers are bound to the *recording*, never merely to its essay:
   // a remastered/replaced recording must not inherit obsolete seek positions.
   const audio = document.querySelector("audio[data-audio-for]");

@@ -1,0 +1,35 @@
+{
+  "status": "PUBLIC_PREVIEW_UNREVIEWED",
+  "artifact_run_id": 42388856204,
+  "artifact_name": "FOR-EDITORIAL-REVIEW-ONLY-Michael-1_10x-six-narrations",
+  "source_manifest_sha256": "85a9d9e2e8bd6af77524ea32f50beb3c24f60114a08209222e1cfbbaa1413f6c",
+  "voice": "am_michael",
+  "tts_speed": 1.1,
+  "publication_approved": false,
+  "recordings": {
+    "forward-science": {
+      "sha256": "5f3566d6ecdec3b01b25b0003635930943989d2d3c4569bc69774fe7d528f1f3",
+      "manuscript_sha256": "5fe45c76f4ec91a2399a3e6321b2bfb7824b60d7a30828cae052b6a326ea219b"
+    },
+    "forward-deployed-scientists": {
+      "sha256": "5995844267c3dc216031a67ccc60d14bbea40fa8b66f07468e927e60f1fae5ab",
+      "manuscript_sha256": "8977a68190c6443dc96ba45c757ff4fb8d665b31f9f0887954d0949c345db9b4"
+    },
+    "scientific-loop": {
+      "sha256": "81b343dcb68e58dbe445ff17dc5206179cde56e11046d3ed0d222bb2831677ee",
+      "manuscript_sha256": "fa86edcb65e385bdd0cf3a4fc41b87daa8283e5dcefe984c3263462f672a8434"
+    },
+    "extension-agents": {
+      "sha256": "caef4feb37c22bfe952eaa291d9155ec86a4fa7cd9326b8a0f6fd5abc77309f9",
+      "manuscript_sha256": "e75f50006adab1d6c5a8fcd7319304853c9faf90e4debb6e10cf1a52575b7eeb"
+    },
+    "political-economy": {
+      "sha256": "2ba5345dcc7c79050f396f1de72a50b19d3aaed913b8228993d5c4005fc32bd3",
+      "manuscript_sha256": "6e4b2b94a6006b7f585c5b849028a1549bec2a926d815633ad0807c55ee97754"
+    },
+    "future-laboratory": {
+      "sha256": "3ed8a19987ec096e04748b3386b1e12ea9b35471e5f410520fedc350793ff76d",
+      "manuscript_sha256": "cbd3c760d193a27994568307f17764eb7f5070cca019ce56522618a460e324dc"
+    }
+  }
+}

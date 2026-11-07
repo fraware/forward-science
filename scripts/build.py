@@ -102,6 +102,8 @@ def load_essays(root: Path) -> list[dict]:
         e["audio"] = None
         e["audio_sha256"] = None
         e["audio_voice"] = None
+        e["audio_preview"] = False
+        e["audio_source"] = None
         recording = audio_manifest.get(e["slug"])
         if recording is not None:
             if not isinstance(recording, dict) or recording.get("path") != f"media/{e['slug']}.mp3":
@@ -113,6 +115,7 @@ def load_essays(root: Path) -> list[dict]:
             if actual_sha != recording.get("sha256"):
                 raise ValueError(f"Audio checksum mismatch: {e['slug']}")
             e["audio"] = recording["path"]
+            e["audio_source"] = source_file
             e["audio_sha256"] = actual_sha
             voice = recording.get("voice")
             if isinstance(voice, dict):
@@ -160,7 +163,8 @@ def validate_provenance(root: Path, essays: list[dict]) -> None:
             raise ValueError(f"Invalid source word count: {e['slug']}")
 
 
-def build(root: Path, output: Path, base_url: str | None, strict: bool = False) -> list[dict]:
+def build(root: Path, output: Path, base_url: str | None,
+          strict: bool = False, preview_dir: Path | None = None) -> list[dict]:
     """Render the site; strict mode prevents deploying preview-only chapters."""
     base_url = verify_base_url(base_url)
     # Never allow a generated-output path to overlap source or repository
@@ -187,12 +191,34 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
                     raise ValueError("Output media path is a symlink")
                 raise ValueError(f"Symlink forbidden in generated publication: {existing}")
     essays = load_essays(root)
+    if preview_dir is not None:
+        if preview_dir.resolve().is_relative_to(output.resolve()):
+            raise ValueError("Private preview source cannot be inside generated public output")
+        # Preview publication has its own pinned, source-and-byte verification.
+        # It is never a substitute for final signed listening acceptance.
+        import importlib.util
+        script = Path(__file__).with_name("verify_audio_previews.py")
+        spec = importlib.util.spec_from_file_location("forward_science_preview_gate", script)
+        if spec is None or spec.loader is None:
+            raise ValueError("Missing preview media verifier")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        preview = module.validate(root, preview_dir)
+        for essay in essays:
+            if essay["audio"] is not None:
+                raise ValueError("A reviewed edition cannot be overwritten by a preview")
+            record = preview[essay["slug"]]
+            essay["audio"] = record["path"]
+            essay["audio_source"] = record["file"]
+            essay["audio_sha256"] = record["sha256"]
+            essay["audio_voice"] = record["voice"]
+            essay["audio_preview"] = True
     incomplete = [e["slug"] for e in essays if not e["complete"]]
     if strict and incomplete:
         raise ValueError("Refusing to publish incomplete chapters: " + ", ".join(incomplete))
     if strict:
         validate_provenance(root, essays)
-        if any(essay["audio"] for essay in essays):
+        if any(essay["audio"] and not essay["audio_preview"] for essay in essays):
             # Release authorization is separate from file-hash verification:
             # validate manuscript, accountable listening review and MP3 decoding.
             import importlib.util
@@ -247,7 +273,7 @@ def build(root: Path, output: Path, base_url: str | None, strict: bool = False) 
         if essay["audio"]:
             target = output / essay["audio"]
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(root / essay["audio"], target)
+            shutil.copy2(essay["audio_source"], target)
     (output / ".nojekyll").touch()
     if base_url and not incomplete:
         from xml.sax.saxutils import escape
@@ -282,9 +308,11 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=ROOT / "site", help="Generated site directory")
     parser.add_argument("--base-url", help="Canonical website base URL, including optional GitHub Pages prefix")
     parser.add_argument("--strict", action="store_true", help="Fail unless all six full texts have been imported")
+    parser.add_argument("--preview-dir", type=Path,
+                        help="Six pinned, unreviewed Michael MP3s for clearly labeled website previews")
     args = parser.parse_args()
     try:
-        essays = build(ROOT, args.out, args.base_url, args.strict)
+        essays = build(ROOT, args.out, args.base_url, args.strict, args.preview_dir)
     except (ValueError, OSError) as exc:
         parser.exit(2, f"Build failed: {exc}\n")
     count = sum(e["complete"] for e in essays)

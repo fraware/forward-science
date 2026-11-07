@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 # The latest main commit must win: a stalled older deployment otherwise
@@ -33,13 +34,30 @@ jobs:
           fi
           ffmpeg -version | head -n 1
           ffprobe -version | head -n 1
+      - name: Retrieve the six pinned preview narrations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          RUN_ID=42388856204
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq .head_branch)" = main
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq .head_sha)" = 7c2fb9d630f733c966245832adbe1624d691edcd
+          test "$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq .conclusion)" = success
+          mkdir -p narration-preview
+          gh run download "$RUN_ID" \
+            --name FOR-EDITORIAL-REVIEW-ONLY-Michael-1_10x-six-narrations \
+            --dir narration-preview
+          test -s narration-preview/UNREVIEWED-MANIFEST.json
       - name: Validate and compile the complete publication
         env:
           SITE_BASE_URL: ${{ vars.SITE_BASE_URL || 'https://fraware.github.io/forward-science' }}
         run: |
           node --check reader.js
           python -m pytest -q -rs
-          python scripts/build.py --strict --base-url "$SITE_BASE_URL"
+          python scripts/build.py --strict --base-url "$SITE_BASE_URL" --preview-dir narration-preview
+          test "$(find site/media -maxdepth 1 -name 'preview-*.mp3' -type f | wc -l)" -eq 6
+          grep -q "Listen (preview)" site/index.html
           test -f site/sitemap.xml
           test -f site/robots.txt
       - uses: actions/configure-pages@v5
