@@ -1,321 +1,66 @@
 # Forward Science
 
-A typography-first, dependency-free static website for the six Forward Science publications by Mateo H. Petel, originally published June 22–27, 2026.
+Six essays on AI, scientific institutions, and the organization of discovery, by Mateo H. Petel. Originally published in June 2026.
 
-**Editorial sequence:** The foundational essay (`00`), then five chapters (`01–05`). The first and second chapters explicitly identify their order in the original articles; their publication dates run in a different order. The concluding essay is absent from the Substack tag listing but was verified at its standalone publication URL.
+**Read the essays:** https://fraware.github.io/forward-science/
 
-## Current state
+## The publication
 
-- Homepage and six local chapter routes are generated from one verified `content/essays.json` manifest.
-- All six full-length essays have been imported from the author's official November 2026 Substack export, including the final essay missing from the Substack tag page. They are available as local reading pages.
-- The original essay prose is **never paraphrased by the importer**. Permitted HTML elements are retained and active content is removed; a text-equivalence check fails closed on changed prose. The strict build checks each imported body against its recorded SHA-256 hash.
-- The original export contained unrelated posts, subscriber information, and delivery analytics. None of those private files were copied into this project. Only six sanitized article bodies and their bounded provenance metadata are included.
-- The importer and strict deployment workflow refuse to pass partial or ambiguous imports as complete texts. Deployment runs on pushes to `main` and by manual dispatch; continuous integration runs on pushes and pull requests.
-- **Publication status:** The complete publication is committed to `fraware/forward-science`. A GitHub Pages deployment job completed successfully on November 3, 2026 (UTC). The GitHub Pages public HTTP release was independently verified in deployment run 41969274869. Live-Substack paragraph comparison and custom-domain selection remain open.
+The series follows one argument across six texts.
 
-## Project layout
+1. [Forward Science](https://fraware.github.io/forward-science/forward-science/)
+2. [Forward-Deployed Scientists](https://fraware.github.io/forward-science/forward-deployed-scientists/)
+3. [The Unit of Deployment Is the Scientific Loop](https://fraware.github.io/forward-science/scientific-loop/)
+4. [From Extension Agents to Forward-Deployed Scientists](https://fraware.github.io/forward-science/extension-agents/)
+5. [Who Pays for the Scientist Who Makes Other Scientists Better](https://fraware.github.io/forward-science/political-economy/)
+6. [Between the Manual Lab and the Self-Driving Lab](https://fraware.github.io/forward-science/future-laboratory/)
 
-```text
-content/essays.json         Titles, source links, concepts and publication dates
-content/essays/*.html      The six sanitized, imported original article bodies
-templates/                 HTML templates, metadata, navigation
-scripts/build.py           Static site compiler
-scripts/import_substack.py Author-export importer with content-integrity checks
-scripts/prepare_private_export.py Removes subscriber data and unrelated posts before sharing
-styles.css                 Editorial design and responsive reading typography
-favicon.svg                Simple lettermark
-site/                      Generated output; publish this directory
-.github/workflows/pages.yml Strict GitHub Pages deployment
-```
+The original articles are also linked from the individual essay pages. The reading order follows the author's intended sequence, which differs slightly from publication-date order.
 
-## Preview locally
+## Website
 
-```bash
+The site is built from static HTML, CSS, and a small amount of JavaScript. It uses no accounts, analytics, third-party fonts, or runtime AI services. Reading progress, if enabled by the browser, stays on the reader's device. The essays remain accessible without JavaScript.
+
+The text in `content/essays/` comes from the author's Substack export. Its original wording is preserved, with source checksums recorded in `content/import-provenance.json`. The site renderer excludes Substack's subscription footer from the reader without changing the archived text.
+
+Audio playback appears only for recordings with documented publication approval. The selected narration voice for the next edition is Kokoro's `am_michael` at **1.10×** synthesis speed. The current full-length recordings are under review and are not yet published.
+
+## Build locally
+
+Python 3.12 is used in GitHub Actions. Install the build dependencies, then serve the generated site.
+
+```sh
 python -m pip install -r requirements-build.txt
-python scripts/build.py
+python scripts/build.py --strict --base-url https://fraware.github.io/forward-science
 python -m http.server --directory site 8000
 ```
 
-Visit `http://localhost:8000`. The website includes optional browser-local reading-progress controls in dependency-free JavaScript; the six essays remain readable with JavaScript disabled. Public audio controls appear only for a full-length, reviewed recording. There are no analytics, remote fonts, accounts, or server-side application requirements.
+Open http://localhost:8000. The `site/` directory is generated and excluded from version control.
 
-## Import the exact six essays
+To run the test suite, install `pytest` and FFmpeg/FFprobe, then run:
 
-The six full source essays are now imported from the author's supplied official Substack export. The process is reproducible from a fresh export. Substack documents the export under **Publication dashboard → Settings → Exports → Create new export** (see https://support.substack.com/hc/en-us/articles/360037466012-How-do-I-export-my-posts).
-
-The ZIP contains subscriber information and other unrelated material; **do not commit or share that ZIP publicly**. Upload it privately to the working environment, or run the importer locally:
-
-```bash
-python scripts/import_substack.py /path/to/substack-export.zip
-python scripts/import_substack.py /path/to/substack-export.zip --apply
-python scripts/build.py --strict
-```
-
-For a privacy-minimized upload, generate an archive containing only the six posts:
-
-```bash
-python scripts/prepare_private_export.py /path/to/substack-export.zip /path/to/forward-science-only.zip
-```
-
-This derivative ZIP contains only the six article bodies and the minimum post metadata necessary for the importer. Use that smaller ZIP for sharing or importing; retain the original export privately.
-
-The first command verifies all six texts in dry-run mode. The second writes sanitized article bodies to `content/essays/` and an `import-provenance.json` report with SHA-256 fingerprints, word counts, dates and source IDs. The importer deliberately rejects ambiguous matches, missing HTML, suspiciously short bodies, unreviewed interactive markup and any loss of textual content. The source HTML fragments, which are author-owned content, can be versioned with this repository; never commit the export ZIP or its subscriber metadata.
-
-**Editorial verification still necessary:** Compare each of the six exported bodies against the latest live publication paragraph by paragraph, review external reference destinations and any notation, and decide whether to preserve or separately edit original typographical errors.
-
-**Independent edition comparison:** For a fresh official Substack export, run `python scripts/import_substack.py /path/to/new-export.zip --compare`. This read-only check compares all six sanitized article HTML bodies and recorded source hashes, post IDs, dates and source paths against the committed edition without altering files. Run `scripts/prepare_private_export.py` first if transferring the ZIP; the original archive contains subscriber data and must remain private. An exact match establishes agreement with the export snapshot, not a guarantee that the live page has remained unchanged since export.
-
-**Optional public-page audit:** Run `python scripts/audit_live_substack.py --json /tmp/live-edition-audit.json` locally where the articles are publicly accessible. It attempts the undocumented public JSON endpoint, then a constrained canonical HTML fallback, and checks paragraphs, full text, citations and metadata. GitHub-hosted runners returned **HTTP 403** for both source formats on November 5, 2026 (Pacific), in [live-source audit run 42139766205](https://github.com/fraware/forward-science/actions/runs/42139766205). Its workflow is manual-only, independent of deployment; failures are classified `unavailable`, not fabricated matches. Do not repeatedly retry blocked requests. Corrections still need an editorial decision and coordinated edition history.
-
-The six exported bodies contain no embedded images or iframes. Their text, titles, subtitles and publication dates are consistent with the source metadata. An import hash proves consistency with the supplied export, not identity to a subsequently edited live post.
-
-## Deployment
-
-- Repository: https://github.com/fraware/forward-science
-- Configured site: https://fraware.github.io/forward-science/
-- Publication workflow: `.github/workflows/pages.yml` runs on pushes to `main` or manual dispatch.
-- The deployment job runs all tests and strict source-integrity checks before uploading the `site/` artifact.
-- Canonical URLs default to `https://fraware.github.io/forward-science`. To use a verified custom domain, set the optional Actions variable `SITE_BASE_URL` to its HTTPS root and redeploy.
-- The Substack “Subscribe now” export footer is omitted only during rendering. The versioned imported article bodies and SHA-256 provenance remain unchanged.
-
-GitHub Actions reports a successful deployment. The public address was independently inspected and matched against every expected generated asset in GitHub Pages deployment run 41969274869; final Substack edition comparison and domain selection remain necessary before announcing the publication. Never commit subscriber exports or unrelated analytics.
-
-### Search engine policy
-
-Preview-only chapter pages are `noindex` and canonicalized to their original Substack URL. With all complete texts present and `--base-url` provided, canonical URLs and `sitemap.xml` use the permanent website. Decide on the preferred canonical versions and coordinate this with the original Substack publications.
-
-## Test
-
-```bash
+```sh
 python -m pytest -q
-python scripts/build.py --strict  # now succeeds with all six imported texts
 ```
 
-## Editorial reference evidence
+The separate browser checks use Playwright and Chromium. GitHub Actions validates the source, builds the site, tests navigation, deploys GitHub Pages, and checks that the public files match the deployment.
 
-`python scripts/audit_references.py --json /tmp/forward-science-reference-inventory.json` generates a read-only, offline inventory of all six source-verified essays. It indexes link labels, destinations, hostname and paragraph context, excludes the six Substack subscription footers, and fails on changed article hashes or malformed/unsafe links. The current corpus has 46 substantive hyperlinks to 32 distinct external URLs. These are **reference counts, not evidence-quality scores**. The systematic claim-source review and prioritized corrections are documented in [docs/EDITORIAL_EVIDENCE_AUDIT.md](docs/EDITORIAL_EVIDENCE_AUDIT.md). A [claim-level editorial review of the political-economy essay](docs/POLITICAL_ECONOMY_CLAIM_REVIEW.md) classifies its 23 substantive paragraphs and distinguishes empirical statements, forecasts, policy choices and proposed measurements; no source edits are authorized. Factual changes remain separately gated by source-edition approval and updated provenance.
+## Source and audio integrity
 
-## Original publications
+The complete essays are maintained in `content/essays/*.html`, with publication metadata in `content/essays.json` and navigation in `content/landmarks.json`. Source edits must be intentional and accompanied by updated provenance. Never commit a raw Substack export, which may contain subscriber information.
 
-- https://mateopetel.substack.com/p/forward-science
-- https://mateopetel.substack.com/p/forward-deployed-scientists
-- https://mateopetel.substack.com/p/the-unit-of-deployment-is-the-scientific
-- https://mateopetel.substack.com/p/from-extension-agents-to-forward
-- https://mateopetel.substack.com/p/who-pays-for-the-scientist-who-makes
-- https://mateopetel.substack.com/p/between-the-manual-lab-and-the-self
+To check a fresh official author export without modifying the repository:
 
-## Reader experience
-
-All six essays now have a curated, collapsible table of contents with paragraph links. These labels are stored in `content/landmarks.json`, separate from the imported source HTML. The strict build verifies that every referenced paragraph exists and refuses invalid landmarks. The complete article remains readable without JavaScript.
-
-A small, dependency-free `reader.js` module optionally remembers the last paragraph using browser-local storage, shows a "Continue reading" link on the homepage, and displays scroll progress. Reading state stays in the visitor's browser. No account, cookie, external telemetry, or server-side reading history exists. Storage errors leave the reading experience operational.
-
-### Audio publication gate
-
-The site contains audio-player support but **no recordings are published yet**. Listening controls appear only for an authenticated local MP3 specified in `content/audio.json`. To add an approved recording:
-
-1. Produce and review a complete narration against its source essay.
-2. Save it as `media/<essay-slug>.mp3` within the repository.
-3. Calculate `sha256sum media/<essay-slug>.mp3` and add the manifest entry, e.g.
-   `"scientific-loop": {"path": "media/scientific-loop.mp3", "sha256": "<64-character SHA-256>"}`.
-4. Run `python -m pytest -q`, `node --check reader.js` and `python scripts/build.py --strict --base-url https://fraware.github.io/forward-science`.
-5. Confirm playback, seeking, speed control, interruption/resumption, and mobile/screen-reader operation before deployment.
-
-The approved-recording player retains the browser's native audio controls. It adds −15-second and +30-second jumps, one listening-speed preference across the series, and an explicit **Resume at M:SS** action. Progress is stored locally and bound to the actual recording SHA-256: a replacement/remastered MP3 invalidates older timestamps. Passive media initialization, a visit without playing, or leaving an untouched page cannot overwrite a previous bookmark; only deliberate playback, transport seeking, or native scrubbing updates progress. No audio plays automatically. Optional Media Session metadata identifies the essay on supported lock screens and headphones. The controls remain functional without Media Session or local storage. Playback cannot continue seamlessly across separate essay pages. Preserve small, cache-valid static MP3 assets and monitor GitHub Pages bandwidth usage.
-
-### Editorial requirements
-
-Navigation landmarks are newly authored editorial aids, not reproduced section headings from the essays. Review their precise positions, labels, and implications before public release. Any future modifications to an imported article still need new provenance records; section anchors must be reviewed again following such changes.
-
-## Author-only edition exports and narration preparation
-
-The website intentionally contains no offline-download section or chapter download controls. The strict GitHub Pages build excludes PDF, EPUB and Markdown artifacts and removes old `site/downloads/` files from a reused local build directory. The separate source-verified exporter remains available for private publication work with `python scripts/export_editions.py --out /path/outside/site`. Generated files must remain outside `site/` to avoid accidental public deployment. No private Substack subscriber data is included.
-
-For a future narration, run `python scripts/prepare_narration.py --out narration-work` locally. The command generates six complete UTF-8 manuscripts, paragraph-bounded narration chunks and an integrity manifest. This produces **text only**. Recordings have yet to be produced, reviewed and added to the checksum-gated audio manifest. The resulting manuscripts should be reviewed by a narrator or used with a connected voice-production provider; voice quality, scientific pronunciation and chapter completeness need listening checks before any audio is published.
-
-## Source-matched, blind voice quality auditions
-
-The GitHub Actions workflow `.github/workflows/narration-voice-auditions.yml` generates four identical-text Kokoro auditions and enforces the same approximate -18 LUFS loudness target for fair comparison. The dedicated `scripts/build_blind_voice_review.py` command produces an **offline anonymous listening page**, four MP3s, independent checksums, and a separate sealed-instructions identity key. Reviewers score naturalness, scientific pronunciation and cadence before learning the voice names. This research-only package is an Actions artifact, never a published reader feature. A short preview identifies candidates and cannot replace a full-length listening sign-off.
-
-## Natural narration policy
-
-**Playback acceptance:** The Listen panel is rendered exclusively for approved recordings. It retains a native, accessible player and the essay as full transcript. Real Android/iOS audio, headphone controls, and the narrator's naturalness need physical-device listening acceptance; mocked Chromium tests verify interface behavior, not sonic quality.
-
-The former site-owned browser text-to-speech interface was removed because the built-in system voices did not meet the publication's narration standard. A full-length, editorially accepted audio edition now uses the site's ordinary native HTML audio player. An unapproved essay remains fully readable as text, without a misleading Listen control. Visitors may still use their own accessibility technology independently of the site.
-
-The author has selected Kokoro `am_michael` as the narrator direction, with a modest **1.10× neural-synthesis speed**. The immediate pitch-preserving preview is an audition reference; the dedicated [Michael sample workflow](.github/workflows/narration-candidate.yml) and [six-essay draft workflow](.github/workflows/narration-drafts.yml) produce new recordings with `--voice am_michael --speed 1.10` passed to the model directly. Those private MP3s require full listening, source accuracy, rights and device acceptance before `content/audio.json` may publish them. The free Kokoro-82M local pipeline prepares source-verified, unreviewed MP3 candidates; voice and pace remain reviewable. ElevenLabs Multilingual v2 is a paid alternative for long-form narration. The optional `scripts/generate_elevenlabs_audition.py` defaults to a **no-charge, network-free preview** and initiates exactly one billable short synthesis only with `--execute`, an explicit selected voice ID, a credit ceiling, and a private `ELEVENLABS_API_KEY`. The manual-only GitHub Actions audition workflow provides equivalent guarded controls. Neither path approves audio or publishes a clip. Costs, voice rights and output quality remain subject to author review; vendor credentials must never enter source control or public JavaScript.
-
-## Definitive MP3 release policy
-
-The former site-owned browser speech controls are retired. Only reviewed MP3s are eligible for public playback.
-Professionally narrated MP3 editions are published only after the author
-or another accountable reviewer has listened to each full recording, compared
-it with the source manuscript, checked scientific pronunciations and sound
-quality, and confirmed distribution rights.
-
-A record under `content/audio.json` must contain:
-
-```json
-{
-  "scientific-loop": {
-    "path": "media/scientific-loop.mp3",
-    "sha256": "<sha256 of final MP3 bytes>",
-    "manuscript_sha256": "<sha256 from narration-work/manifest.json>",
-    "voice": {
-      "type": "human",
-      "name": "<actual voice or narrator>",
-      "provider": "<actual provider>",
-      "distribution_rights_basis": "<documented rights>"
-    },
-    "review": {
-      "reviewer": "<actual reviewer>",
-      "reviewed_on": "YYYY-MM-DD",
-      "listened_in_full": true,
-      "spoken_text_checked": true,
-      "pronunciation_checked": true,
-      "audio_artifacts_checked": true,
-      "distribution_rights_confirmed": true
-    }
-  }
-}
+```sh
+python scripts/import_substack.py /path/to/new-export.zip --compare
 ```
 
-Use the real voice type (`human` or `synthetic`) and record the actual
-provider and permission to redistribute the recordings. Never invent
-attestations. Run `python scripts/verify_audio.py`; a strict site build
-invokes the same verifier whenever a recording is listed. It checks SHA-256,
-the source narration manuscript, reviewer fields, one MP3 stream, plausible
-duration and audio format, and full-file FFmpeg decoding. FFmpeg and FFprobe
-must be installed for actual MP3 publication. These automated checks do
-not prove audio-to-text correspondence or artistic quality; that judgment
-remains the stated human sign-off.
+`scripts/prepare_private_export.py` helps minimize sensitive data before a private transfer. `scripts/audit_references.py` inventories links in the published texts.
 
-The manifest is currently empty. No MP3 recordings have passed the gate.
+Narration manuscripts come from `scripts/prepare_narration.py`. The speech-generation tools produce private review recordings. The publication build checks the final MP3 files, source-text identities, recording details, and approval record before including audio. The website does not generate speech in visitors' browsers or call an external voice API.
 
+The four current publication decisions are tracked as [narration](https://github.com/fraware/forward-science/issues/8), [editorial corrections](https://github.com/fraware/forward-science/issues/20), [website address and indexing](https://github.com/fraware/forward-science/issues/25), and [source verification](https://github.com/fraware/forward-science/issues/26).
 
-### Narration mastering and review cues
+## Copyright
 
-Full-length synthetic draft production now applies FFmpeg loudness normalization directly from each source PCM WAV to approximately **-18 LUFS** with a **-1.5 dBTP** target, 24 kHz mono and 96 kbps MP3. After encoding, a separate decoding/measurement step rejects out-of-range loudness, excessive true peak and silent gaps longer than 2.5 seconds. The source-faithful segment manifest includes approximate per-phrase start/end times, paragraph numbers, and source-text hashes. These cues help the human reviewer locate difficult scientific terms and transitions; MP3 encoder padding means they are not sample-exact alignments. Silence, peak and loudness checks do not verify spoken correctness. The editorially reviewed MP3 release gate remains unchanged.
-
-
-### Independent master-quality check for definitive recordings
-
-The strict public MP3 gate independently measures each approved file with FFmpeg using EBU R128 loudness analysis. It rejects recordings outside -21 to -15 LUFS, true peak above -1 dBTP, or unexplained silent gaps of four seconds or longer. Tests exercise real MP3 decoding and real loudness measurement. These are technical consistency checks alongside, not substitutes for, complete human listening and text fidelity review.
-
-
-### Voice artifact reproducibility and disclosure
-
-The six-essay synthetic candidate generator verifies the exact SHA-256 values
-of the Kokoro ONNX backbone and the v1.0 voice pack used in the successful
-initial and remastered runs. Updated upstream model files require an explicit
-reviewed checksum change before synthesis. The website's native MP3 player
-identifies an approved edition as **synthetic** or **human** narration, with its
-actual voice name and provider, and presents the essay as its written transcript.
-This disclosure applies only if a recording passes the separate strict-release
-gate; the public audio manifest currently remains empty.
-
-
-### Public MP3 delivery integrity
-
-For any future approved MP3 release, the post-deployment GitHub Pages audit
-downloads the actual public narration bytes and compares SHA-256 with the
-approved build artifact. Large non-audio files retain lighter HEAD checks.
-This catches audio substitutions that preserve file length; it adds bandwidth
-only to a publication carrying approved recordings. Public MP3 playback is
-still absent until recorded-text and listening review pass.
-
-
-### Independent narration-discrepancy triage
-
-The independent ASR audit reports both raw word error rate and an additional
-conservative content-edit estimate. Orthographic splitting or joining (such as
-`first hand` → `firsthand`) no longer counts as substantive drift, while
-homophones, omitted qualifications, inflections, unusual terminology and
-ASR-uncertain phrases remain in the listening queue. **Every content mismatch
-is included in the review queue, even with low estimated WER.** This is
-prioritization only: audio-to-text comparison is not a substitute for
-full-length listening. The original manuscript, recorded audio and ASR
-transcripts remain independently versioned and unapproved until sign-off.
-
-
-## Controlled six-essay audio publication handoff
-
-`scripts/stage_reviewed_audio.py` converts **private**, explicit human review
-evidence into a staged release bundle. The original draft archive and
-independent `ASR_AUDIT_UNREVIEWED.json` must match by SHA-256. Export notes from
-the private ASR-assisted listening interface; its JSON must identify all six
-exact MP3s, mark each `__fullListened: true`, and mark every ASR-flagged phrase
-`checked` with a substantive adjudication note. Any unresolved `problem`
-blocks staging.
-
-Begin with `docs/narration-approval.template.json` (all approval flags initially false). Create a private copy outside Git after carrying out the listed reviews.
-
-A separate reviewer-authored `approval.json` must include a genuine
-`authorize_release_candidate: true`, actual reviewer and ISO review date,
-the voice provenance (`type: synthetic`, `name: af_heart`, provider, specific
-distribution-rights basis), and five honestly asserted boolean `attestations`
-(`listened_in_full`, `spoken_text_checked`, `pronunciation_checked`,
-`audio_artifacts_checked`, `distribution_rights_confirmed`). Never
-fabricate the reviewer details or a listening judgment.
-
-```bash
-python scripts/stage_reviewed_audio.py --source . \
-  --drafts /private/unreviewed-drafts \
-  --asr /private/asr/ASR_AUDIT_UNREVIEWED.json \
-  --notes /private/forward-science-narration-review-notes.json \
-  --approval /private/approval.json \
-  --output /private/release-staging
-```
-
-A successful run re-verifies all six audio/source hashes, review coverage,
-reviewer declarations, FFmpeg full-file decoding, codec, duration, loudness,
-peak and long-silence thresholds. It produces a private `media/` directory,
-`audio.json` for later copying into `content/`, and a provenance receipt.
-It **does not modify the Git repository or public site**. A reviewed Git
-commit and passing production deployment remain mandatory for publication.
-
-
-### Public-artifact hygiene
-
-Every strict build now rejects unexpected output files, symbolic links, and
-output paths overlapping authoritative source directories. Reusing a local
-site directory automatically retracts stale `site/media/` content, including
-previously approved MP3 files subsequently withdrawn from the manifest.
-This matters for local and custom-hosting builds even though GitHub Actions
-usually checks out into a clean runner. Public download editions remain
-excluded. CI includes regression tests covering stale-media withdrawal,
-unrecognized private files, symlink safety, and protected source paths.
-
-
-### Headless-browser release checks
-
-The separate `.github/workflows/browser-regression.yml` job exercises the complete, strictly built publication in real Chromium over a loopback HTTP server. It checks all seven pages at 320, 390, 768 and 1440 pixels, paragraph deep links, actual previous/next navigation, saved-reading recovery, local-only history clearing and no-JavaScript access. The tests verify that obsolete site-owned browser voices and citation-copy controls are absent; they do not establish narration quality, native mobile audio behaviour or screen-reader acceptance. Run locally with `python -m pip install pytest playwright==1.56.0`, `python -m playwright install chromium` and `python -m pytest -q browser/verify_reader.py`. No browser-test dependency is delivered to website visitors.
-
-The reader no longer overwrites a previous paragraph bookmark on initial render in a tall viewport. It updates the saved location only following deliberate scrolling, a valid paragraph deep link, a restored scrolled page or explicit Resume.
-
-
-### Validate a self-contained private listening handoff
-
-An offline review workspace alone is insufficient input to
-`scripts/stage_reviewed_audio.py`. A complete private handoff also includes
-`UNREVIEWED-MANIFEST.json`, the six original `manuscripts/*.txt`,
-`ASR_AUDIT_UNREVIEWED.json`, all six matching MP3s, a complete SHA-256
-inventory, and an **unsigned** attestation template. The package remains
-private and must never be placed in the generated Pages directory.
-
-Validate it against the authoritative repository before beginning a review:
-
-```bash
-python scripts/verify_review_handoff.py \
-  /private/Forward_Science_Complete_Private_Narration_Review_Handoff.zip \
-  --source .
-```
-
-This independently verifies every included file checksum, the exact source
-narration manuscript for each essay, all source-hashed speech segments,
-the separate ASR recording-manifest binding, and the HTML player's MP3
-identities. The unreviewed manifest and reviewer template must explicitly
-deny publication approval. Optional short clips accelerate discrepancy
-triage; six complete recordings still need authentic full-length listening.
-This packaging check does not decode the audio or certify what was spoken.
-The later private stager runs the full codec/acoustic and reviewer-evidence
-acceptance gate.
+© 2026 Mateo H. Petel. The essays and site are publicly readable. No additional content-reuse or software license is granted merely by the repository being public. Third-party tools and dependencies retain their respective licenses.

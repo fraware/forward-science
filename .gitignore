@@ -1,8 +1,26 @@
+# Python and local development
 __pycache__/
 .pytest_cache/
 *.py[cod]
 .venv/
-# The generated deployment output is built locally or in GitHub Actions.
+.env
+.env.*
+!.env.example
+
+# GitHub Pages builds
 site/
-# Never commit a Substack data export containing subscriber information.
+
+# Private author exports and generated review material
 *export*.zip
+narration-work/
+narration-input/
+narration-candidate/
+narration-drafts/
+voice-auditions/
+private-elevenlabs-audition/
+asr-review/
+narration-review/
+UNREVIEWED-*.mp3
+UNREVIEWED-*.wav
+
+# Keep only intentionally approved recordings under media/.
