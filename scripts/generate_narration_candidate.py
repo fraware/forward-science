@@ -9,9 +9,23 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import subprocess
 from pathlib import Path
 
+
+def validated_speed(value: float) -> float:
+    """Keep neural synthesis in a modest, finite range suitable for prose.
+
+    Speeds beyond this range deserve separate audio-quality review and are not
+    silently accepted in the release-production pipeline.
+    """
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError("Speech speed must be a finite number from 0.85 to 1.25")
+    speed = float(value)
+    if not math.isfinite(speed) or not 0.85 <= speed <= 1.25:
+        raise ValueError("Speech speed must be a finite number from 0.85 to 1.25")
+    return speed
 
 
 def text_chunks(text: str, limit: int = 330) -> list[str]:
@@ -61,8 +75,10 @@ def master_preview(wav: Path, mp3: Path, sample_rate: int) -> dict:
     return measure_audio(mp3)
 
 
-def generate(root: Path, model: Path, voices: Path, output: Path, voice: str) -> dict:
+def generate(root: Path, model: Path, voices: Path, output: Path,
+             voice: str, speed: float = 1.0) -> dict:
     """Render a two-paragraph preview; publishable editions use a separate gate."""
+    speed = validated_speed(speed)
     from prepare_narration import compile_narration
     import numpy as np
     import soundfile as sf
@@ -80,7 +96,7 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str) ->
     waveforms = []
     sample_rate = None
     for index, piece in enumerate(pieces, 1):
-        audio, rate = tts.create(piece, voice=voice, speed=1.0, lang="en-us")
+        audio, rate = tts.create(piece, voice=voice, speed=speed, lang="en-us")
         if sample_rate is None:
             sample_rate = rate
         if rate != sample_rate or not np.asarray(audio).size:
@@ -104,6 +120,7 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str) ->
         "sample_text_sha256": hashlib.sha256(sample_text.encode()).hexdigest(),
         "sample_text": sample_text,
         "voice": voice,
+        "tts_speed": speed,
         "model": "Kokoro-82M v1.0, ONNX model-files-v1.1",
         "provider": "Open-weight local inference using kokoro-onnx",
         "language": "en-us",
@@ -132,8 +149,11 @@ def main() -> int:
     parser.add_argument("--voices", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=Path("narration-candidate"))
     parser.add_argument("--voice", default="af_heart")
+    parser.add_argument("--speed", type=float, default=1.0,
+                        help="Neural synthesis speed (0.85–1.25; 1.10 for Michael)")
     args = parser.parse_args()
-    report = generate(args.root, args.model, args.voices, args.output, args.voice)
+    report = generate(args.root, args.model, args.voices, args.output,
+                      args.voice, args.speed)
     print(f"Candidate synthesized: {report['duration_seconds']} seconds, NOT approved")
     return 0
 

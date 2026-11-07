@@ -24,7 +24,8 @@ The six-essay publication is imported from the author export and verified agains
 - [x] Remove the site-owned browser speech interface, its obsolete production script, and the low-quality voice selector.
 - [x] Remove the Copy citation action, clipboard handler, and copied-citation feedback from all essays.
 - [x] Audit all four existing free audition MP3s for measured loudness and repair the preview mastering path, with independent FFmpeg verification and a blind, same-source listening interface.
-- [ ] Listen to alternative neural voice samples from the pinned free Kokoro pipeline; choose the narrator only with editorial approval.
+- [x] Choose `am_michael` as the preferred narrator and set direct neural synthesis to `1.10×`, following author feedback. This approves the narrator direction and pacing for production drafts, not the final complete recordings.
+- [ ] Review the new Michael 1.10× sample and all six revised full-length drafts, checking pronunciation, continuity, omissions and actual naturalness at the selected rate.
 - [x] Prepare a safe ElevenLabs Multilingual v2 audition path with no-charge default, explicitly authorized single-request mode, credit ceiling, optional private secret and offline tests.
 - [ ] Evaluate a licensed ElevenLabs long-form sample if the local candidates fall short of natural, professional delivery. Paid provider usage still needs explicit authorization.
 - [x] Add SHA-256-edition-bound listening bookmarks, explicit resumption, ±15/30-second seeking, and one persisted playback-speed preference for the future approved-MP3 player. Chromium uses injected synthetic media only and never publishes it.

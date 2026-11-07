@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/narration-drafts.yml
+      - scripts/generate_all_audio_candidates.py
 permissions:
   contents: read
 jobs:
@@ -37,7 +38,7 @@ jobs:
             --root . \
             --model "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" \
             --voices "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
-            --voice af_heart --max-chars 850 --output narration-drafts
+            --voice am_michael --speed 1.10 --max-chars 850 --output narration-drafts
           cp "$RUNNER_TEMP/kokoro/model-provenance.sha256" narration-drafts/
           test "$(find narration-drafts -maxdepth 1 -name 'UNREVIEWED-*.mp3' | wc -l)" -eq 6
           test "$(find narration-drafts -maxdepth 1 -name 'UNREVIEWED-*.wav' | wc -l)" -eq 0
@@ -46,9 +47,12 @@ jobs:
           from pathlib import Path
           report=json.loads(Path("narration-drafts/UNREVIEWED-MANIFEST.json").read_text())
           assert len(report["recordings"]) == 6
+          assert report["voice"] == "am_michael"
+          assert report["tts_speed"] == 1.10
           assert not report["publication_approved"]
           for item in report["recordings"]:
               assert item["segment_timeline"]
+              assert item["tts_speed"] == 1.10
               assert -20 <= item["signal_quality"]["integrated_lufs"] <= -16
               assert item["signal_quality"]["true_peak_dbtp"] <= -1
           print("Six unreviewed mastered candidates meet signal-level QA gates")
@@ -56,12 +60,12 @@ jobs:
       - name: Upload six unreviewed drafts for listening QA
         uses: actions/upload-artifact@v4
         with:
-          name: FOR-EDITORIAL-REVIEW-ONLY-six-narrations
+          name: FOR-EDITORIAL-REVIEW-ONLY-Michael-1_10x-six-narrations
           path: |
             narration-drafts/UNREVIEWED-*.mp3
             narration-drafts/UNREVIEWED-MANIFEST.json
             narration-drafts/READ-ME-FIRST.txt
             narration-drafts/model-provenance.sha256
             narration-drafts/manuscripts/*.txt
-          retention-days: 7
+          retention-days: 30
           if-no-files-found: error

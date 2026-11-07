@@ -143,7 +143,10 @@ def measure_audio(mp3: Path) -> dict:
     }
 
 
-def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, limit: int) -> dict:
+def generate(root: Path, model: Path, voices: Path, output: Path,
+             voice: str, limit: int, speed: float = 1.0) -> dict:
+    from generate_narration_candidate import validated_speed
+    speed = validated_speed(speed)
     from prepare_narration import compile_narration
     import numpy as np
     import soundfile as sf
@@ -162,7 +165,7 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, li
         audio_segments = []
         sample_rate = None
         for index, (text, paragraph_end) in enumerate(segments):
-            samples, rate = kokoro.create(text, voice=voice, speed=1.0, lang="en-us")
+            samples, rate = kokoro.create(text, voice=voice, speed=speed, lang="en-us")
             samples = np.asarray(samples, dtype=np.float32).reshape(-1)
             if samples.size == 0 or not np.isfinite(samples).all():
                 raise ValueError(f"Unusable model output in {slug} segment {index + 1}")
@@ -191,6 +194,7 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, li
         measurements = measure_audio(mp3)
         record = {
             "slug": slug, "title": essay["title"],
+            "tts_speed": speed,
             "manuscript_sha256": essay["spoken_body_sha256"],
             "word_count": essay["word_count"],
             "chunks": len(segments),
@@ -212,6 +216,7 @@ def generate(root: Path, model: Path, voices: Path, output: Path, voice: str, li
         "status": "UNREVIEWED_SYNTHETIC_DRAFTS",
         "generated_utc": datetime.now(timezone.utc).isoformat(),
         "voice": voice,
+        "tts_speed": speed,
         "voice_provider": "Kokoro-82M / kokoro-onnx",
         "model": "Kokoro 82M v1.0 model-files-v1.1 (Apache-2.0)",
         "mastering": "FFmpeg single-pass from original PCM: -18 LUFS, -1.5 dBTP, 24kHz mono, 96kbps MP3",
@@ -244,10 +249,12 @@ def main() -> int:
     p.add_argument("--voices", type=Path, required=True)
     p.add_argument("--output", type=Path, default=Path("narration-drafts"))
     p.add_argument("--voice", default="af_heart")
+    p.add_argument("--speed", type=float, default=1.0,
+                   help="Neural synthesis speed (0.85–1.25; 1.10 for Michael)")
     p.add_argument("--max-chars", type=int, default=850)
     args = p.parse_args()
     generated = generate(args.root, args.model, args.voices, args.output,
-                         args.voice, args.max_chars)
+                         args.voice, args.max_chars, args.speed)
     print(f"Prepared {len(generated['recordings'])} UNREVIEWED drafts only")
     return 0
 

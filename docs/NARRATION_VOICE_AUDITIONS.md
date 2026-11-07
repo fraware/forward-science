@@ -1,6 +1,6 @@
 # Forward Science — Natural narrator selection and publication gate
 
-**Status:** editorial decision and sample generation; no recording approved for publication.
+**Status:** Michael (`am_michael`) selected for development at neural synthesis speed **1.10×** (November 7, 2026). This represents voice/pacing direction, not full-essay listening approval. No recording approved for public publication.
 
 The discontinued website narration relied on the reader's browser-provided speech engine. Its pronunciation, prosody, accents, and consistency were outside the publication's control. The user assessed the available voices as unacceptably artificial. **The site now loads only explicitly approved, source-verified MP3 recordings.** There is no runtime text-to-speech service, API credential, external voice widget, or autoplay.
 
@@ -27,6 +27,16 @@ Generate once and serve the final reviewed MP3 as a static site file. Do not sen
 [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) has Apache-2.0-licensed 0.6B and 1.7B speech models, including English preset voices. It is a credible additional option to test for greater naturalness, with substantially higher inference and memory needs than Kokoro 82M. Its developers publish quality results, yet selection for Forward Science must rely on **identical-text listening tests and scientific pronunciation audits**, not vendor/developer benchmarks alone.
 
 [Chatterbox](https://github.com/resemble-ai/chatterbox) is MIT open source but was archived as unmaintained research in August 2026. It remains a possible offline comparison, with an extra operational-maintenance risk. Never clone any person's voice without their permission.
+
+## Michael voice decision and pace
+
+The author selected Kokoro's **`am_michael`** voice and requested a modest speed increase. The production target is **`--voice am_michael --speed 1.10`** passed **directly to Kokoro's synthesizer**, independently of the reader's optional playback-rate control.
+
+The temporary listening preview `Forward_Science_Michael_1_10x_Preview.mp3` was prepared by pitch-preserving FFmpeg `atempo=1.10` from the independently normalized Michael sample, as an immediate reference. Its duration decreased from **78.648 to 71.496 seconds**, with source sample SHA-256 `5b048cdc009fc3996fe1957b2d551db485a228a2124a73b0c15a9b0e0b2be46f`. The processed sample has SHA-256 `3248713590ddbacf45168437c01c85ce2e323c0d8b4af36321f98224097796c1`. This demonstrates the **tempo**, not the timbre/prosody of a fresh neural re-synthesis.
+
+The [Michael 1.10× candidate workflow](../.github/workflows/narration-candidate.yml) prepares a new **native-speed** audition. The [full six-essay draft workflow](../.github/workflows/narration-drafts.yml) renders all six original manuscripts using the same `am_michael` and `1.10` model parameters, independently checks source provenance and signal quality, and keeps output as a **private unreviewed GitHub Actions artifact**. Both generators record `tts_speed` in their manifests. One sample and the six full essays still need listening, pronunciation checking, and release review before any public Listen control is enabled.
+
+The original four-voice comparison remains available by manual workflow dispatch for future re-evaluation.
 
 ## Four free, comparable narrator auditions
 

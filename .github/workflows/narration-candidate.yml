@@ -1,10 +1,12 @@
-name: Candidate narration — Kokoro (unreviewed)
+name: Michael narration — Kokoro 1.10x audition (unreviewed)
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - .github/workflows/narration-candidate.yml
+      - scripts/generate_narration_candidate.py
+      - scripts/generate_all_audio_candidates.py
 permissions:
   contents: read
 jobs:
@@ -31,27 +33,44 @@ jobs:
             https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin
           sha256sum "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
             > "$RUNNER_TEMP/kokoro/model-provenance.sha256"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.generate_all_audio_candidates import verify_model_assets
+          base = Path(os.environ["RUNNER_TEMP"]) / "kokoro"
+          verify_model_assets(base / "kokoro-v1.0.onnx", base / "voices-v1.0.bin")
+          PY
       - name: Render a short unreviewed sample
         run: |
           python scripts/generate_narration_candidate.py \
             --root . --model "$RUNNER_TEMP/kokoro/kokoro-v1.0.onnx" \
             --voices "$RUNNER_TEMP/kokoro/voices-v1.0.bin" \
-            --voice af_heart --output narration-candidate
+            --voice am_michael --speed 1.10 --output narration-candidate
           cp "$RUNNER_TEMP/kokoro/model-provenance.sha256" narration-candidate/
           ffprobe -v error -show_entries format=duration:stream=codec_name -of json \
             narration-candidate/UNREVIEWED-forward-science-preview.mp3
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("narration-candidate/CANDIDATE-NOT-FOR-PUBLICATION.json").read_text())
+          assert r["voice"] == "am_michael" and r["tts_speed"] == 1.10
+          assert r["publication_approved"] is False
+          assert -20 <= r["signal_quality"]["integrated_lufs"] <= -16
+          assert r["signal_quality"]["true_peak_dbtp"] <= -1
+          print("Michael 1.10x unreviewed model-generation audition verified")
+          PY
           test ! -e content/audio.json.bak
       - name: Upload review-only candidate
         uses: actions/upload-artifact@v4
         with:
-          name: UNREVIEWED-Kokoro-Forward-Science
+          name: UNREVIEWED-Michael-1_10x-Forward-Science
           path: narration-candidate/UNREVIEWED-forward-science-preview.mp3
           retention-days: 7
           if-no-files-found: error
       - name: Upload candidate provenance
         uses: actions/upload-artifact@v4
         with:
-          name: UNREVIEWED-Kokoro-Provenance
+          name: UNREVIEWED-Michael-1_10x-Provenance
           path: |
             narration-candidate/CANDIDATE-NOT-FOR-PUBLICATION.json
             narration-candidate/model-provenance.sha256

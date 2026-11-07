@@ -68,3 +68,21 @@ def test_candidate_mastering_meets_signal_target_with_real_ffmpeg(tmp_path):
 def test_candidate_mastering_rejects_bad_input(tmp_path):
     with pytest.raises(ValueError, match="Missing WAV source or invalid sample rate"):
         module.master_preview(tmp_path / "missing.wav", tmp_path / "out.mp3", 24000)
+
+
+@pytest.mark.parametrize("speed", [0.85, 1.0, 1.10, 1.25])
+def test_narration_speed_accepts_bounded_neural_rate(speed):
+    assert module.validated_speed(speed) == speed
+
+
+@pytest.mark.parametrize("speed", [0.0, -1.0, 0.849, 1.251, 20, float("nan"), float("inf"), -float("inf"), None, True])
+def test_narration_speed_rejects_invalid_rates(speed):
+    with pytest.raises(ValueError, match="finite number"):
+        module.validated_speed(speed)
+
+
+def test_default_and_selected_speed_are_independent_of_text_segmentation():
+    text = "Long-form scientific prose should retain exact phrasing. " * 15
+    chunks = module.text_chunks(text)
+    assert " ".join(chunks) == " ".join(text.split())
+    assert module.validated_speed(1.10) == 1.10

@@ -93,3 +93,21 @@ def test_generation_rejects_unpinned_voice_or_model_files(tmp_path):
         module.verify_model_assets(model, voices)
     assert len(module.KOKORO_MODEL_SHA256) == 64
     assert len(module.KOKORO_VOICES_SHA256) == 64
+
+
+def test_full_series_speed_gate_rejects_invalid_rate_before_loading_model(tmp_path):
+    """Reject unsafe rate before attempting costly model loading."""
+    import pytest
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    with pytest.raises(ValueError, match="finite number"):
+        module.generate(ROOT, tmp_path / "missing.onnx", tmp_path / "missing-voices",
+                        tmp_path / "private", "am_michael", 850, speed=2.0)
+
+
+def test_full_series_accepts_michael_target_synthesis_rate():
+    """The selected rate is explicit and passed to neural synthesis."""
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from generate_narration_candidate import validated_speed
+    assert validated_speed(1.10) == 1.10

@@ -1,13 +1,6 @@
 name: Audition four neural narrator voices (private, unreviewed)
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/narration-voice-auditions.yml
-      - scripts/generate_narration_candidate.py
-      - scripts/build_blind_voice_review.py
-      - scripts/prepare_narration.py
 permissions:
   contents: read
 jobs:
