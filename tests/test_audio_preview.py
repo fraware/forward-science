@@ -82,7 +82,8 @@ def test_unreviewed_audio_is_opt_in_with_native_controls():
     disclosure = page.select_one("details#listen.listen-option")
     assert disclosure is not None and not disclosure.has_attr("open")
     assert disclosure.select_one("summary").get_text(" ", strip=True) == "Listen to this essay"
-    assert disclosure.select_one(".listen-option__note").get_text(strip=True) == "Synthetic narration"
+    assert disclosure.select_one(".listen-option__note") is None
+    assert "Synthetic narration" not in page.get_text(" ", strip=True)
     audio = disclosure.select_one("audio[data-essay-audio][controls]")
     assert audio is not None
     assert audio["preload"] == "none"

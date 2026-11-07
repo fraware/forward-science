@@ -246,6 +246,5 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .listen-option[open] > summary::after { content: "−"; }
 .listen-option > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .listen-option__body { padding: 8px 0 19px; }
-.listen-option__note { margin: 0 0 9px; font: italic 13px/1.5 var(--serif); color: var(--muted); }
 .listen-option audio { display: block; max-width: 100%; width: 100%; }
 @media print { .listen-option { display: none; } }
