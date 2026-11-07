@@ -29,12 +29,19 @@
   </div></header>
   <main id="main" class="reader">
     <header class="chapter-heading narrow">
-      <p class="chapter-kicker">{{ essay.number }} <span aria-hidden="true">/</span> {{ essay.concept }}</p>
+      <p class="chapter-kicker">Part {{ essay.chapter_roman }} <span aria-hidden="true">/</span> {{ essay.concept }}</p>
       <h1>{{ essay.title }}</h1>
       <p class="chapter-subtitle">{{ essay.subtitle }}</p>
       <p class="chapter-byline">Mateo H. Petel <span aria-hidden="true">·</span> <time datetime="{{ essay.date }}">{{ essay.date_long }}</time></p>
     </header>
-    <div class="narrow"><hr class="rule"></div>
+    <nav class="chapter-register chapter-register--essay narrow" aria-label="The six parts of Forward Science">
+      <span class="chapter-register__label">The series</span>
+      <ol>
+      {% for part in essays %}
+        <li><a href="../{{ part.slug }}/" aria-label="Part {{ part.chapter_roman }}. {{ part.title }}"{% if part.slug == essay.slug %} aria-current="page"{% endif %} title="{{ part.title }}"><span aria-hidden="true">{{ part.chapter_roman }}</span></a></li>
+      {% endfor %}
+      </ol>
+    </nav>
     {% if essay.complete %}
     <section class="reading-tools narrow" aria-label="Reading tools">
       <details class="reader-toc">

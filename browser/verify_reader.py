@@ -1,7 +1,7 @@
 """Real Chromium integration checks for Forward Science's static reader.
 
 Runs in an isolated GitHub Actions job, using a loopback HTTP server. Browser
-only reviewed audio editions appear; no browser voice fallback is shipped.
+audio previews and approved editions use native controls; no browser voice fallback.
 """
 from __future__ import annotations
 
@@ -125,6 +125,39 @@ def test_classic_editorial_typography_at_mobile_and_desktop(server_url, browser)
         assert essay["measure"] <= 677
         assert essay["overflowing"] is False
         assert essay["controls"] == 1
+        context.close()
+
+
+def test_six_part_register_and_colophon_at_all_screen_widths(server_url, browser):
+    """A six-part editorial index stays navigable and legible across devices."""
+    for width, height in [(320, 720), (390, 844), (768, 1024), (1440, 900)]:
+        context = browser.new_context(viewport={"width": width, "height": height})
+        page = context.new_page()
+        page.goto(server_url + "/", wait_until="load")
+        register = page.locator('nav.chapter-register[aria-label="The six parts of Forward Science"]')
+        assert register.locator("ol a").count() == 6
+        assert [link.strip() for link in register.locator("ol a").all_text_contents()] == [
+            "I", "II", "III", "IV", "V", "VI"
+        ]
+        assert register.locator('[aria-current="page"]').count() == 0
+        assert page.locator("#colophon-title").inner_text() == "Colophon"
+        assert page.locator("ol.essay-list > li").count() == 6
+        assert page.evaluate(
+            "() => document.documentElement.scrollWidth <= window.innerWidth + 1"
+        )
+        # Keyboard focus and anchors should work on every size, with no scripted navigation.
+        register.locator("a").nth(2).click()
+        assert page.url.endswith("/scientific-loop/")
+        current = page.locator('nav.chapter-register a[aria-current="page"]')
+        assert current.count() == 1
+        assert current.inner_text().strip() == "III"
+        assert current.get_attribute("aria-label").startswith("Part III.")
+        assert page.evaluate(
+            "() => document.documentElement.scrollWidth <= window.innerWidth + 1"
+        )
+        page.locator("nav.chapter-register a").last.click()
+        assert page.url.endswith("/future-laboratory/")
+        assert page.locator('nav.chapter-register a[aria-current="page"]').inner_text().strip() == "VI"
         context.close()
 
 

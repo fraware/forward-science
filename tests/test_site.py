@@ -333,3 +333,46 @@ def test_editorial_typography_has_no_remote_font_dependency() -> None:
         html = (ROOT / "templates" / template).read_text(encoding="utf-8")
         assert 'name="theme-color" content="#faf9f6"' in html
         assert 'http://fonts.' not in html and 'https://fonts.' not in html
+
+
+def test_series_register_and_colophon_are_consistent_across_seven_pages(tmp_path: Path) -> None:
+    """Every part has a meaningful link and one current-page marker on its page."""
+    site = tmp_path / "monograph"
+    essays = module.build(ROOT, site, "https://example.org/forward-science", strict=True)
+    assert [e["chapter_roman"] for e in essays] == ["I", "II", "III", "IV", "V", "VI"]
+    home = BeautifulSoup((site / "index.html").read_text(), "html.parser")
+    home_links = home.select('nav.chapter-register[aria-label="The six parts of Forward Science"] ol a')
+    assert len(home_links) == 6
+    assert not any(a.has_attr("aria-current") for a in home_links)
+    assert [a["href"] for a in home_links] == [e["slug"] + "/" for e in essays]
+    assert [a["aria-label"] for a in home_links] == [
+        f'Part {e["chapter_roman"]}. {e["title"]}' for e in essays
+    ]
+    assert [a.get_text(strip=True) for a in home_links] == [
+        e["chapter_roman"] for e in essays
+    ]
+    contents = home.select("ol.essay-list > li")
+    assert [entry["id"] for entry in contents] == [
+        f'part-{e["chapter_roman"]}' for e in essays
+    ]
+    assert [entry.select_one(".essay__number").get_text(strip=True) for entry in contents] == [
+        e["chapter_roman"] for e in essays
+    ]
+    assert home.select_one("#colophon-title").get_text(strip=True) == "Colophon"
+    assert home.select_one('#about a[href="https://mateopetel.substack.com/t/forward-science"]')
+    assert not home.select_one(".closing")
+    for essay in essays:
+        page = BeautifulSoup((site / essay["slug"] / "index.html").read_text(), "html.parser")
+        links = page.select('nav.chapter-register[aria-label="The six parts of Forward Science"] ol a')
+        assert len(links) == 6
+        assert [a["href"] for a in links] == [f'../{e["slug"]}/' for e in essays]
+        assert [a.get_text(strip=True) for a in links] == [
+            e["chapter_roman"] for e in essays
+        ]
+        current = [a for a in links if a.get("aria-current") == "page"]
+        assert len(current) == 1
+        assert current[0]["href"] == f'../{essay["slug"]}/'
+        assert page.select_one(".chapter-kicker").get_text(" ", strip=True).startswith(
+            f'Part {essay["chapter_roman"]}'
+        )
+        assert page.select_one('article[aria-label="Full essay"]')

@@ -63,6 +63,7 @@ def load_essays(root: Path) -> list[dict]:
     if not isinstance(audio_manifest, dict) or set(audio_manifest) - set(landmark_map):
         raise ValueError("Audio manifest contains unrecognized essays")
     for position, e in enumerate(manifest):
+        e["chapter_roman"] = ("I", "II", "III", "IV", "V", "VI")[position]
         if e["number"] != f"{position:02d}" or not SLUG.fullmatch(e["slug"]):
             raise ValueError(f"Invalid sequence/slug: {e}")
         if e["slug"] in slugs:
@@ -262,6 +263,7 @@ def build(root: Path, output: Path, base_url: str | None,
         page.mkdir(parents=True, exist_ok=True)
         html = env.get_template("essay.html.j2").render(
             essay=essay,
+            essays=essays,
             previous=essays[i - 1] if i else None,
             next=essays[i + 1] if i + 1 < len(essays) else None,
             base_url=base_url,
