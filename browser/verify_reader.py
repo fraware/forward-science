@@ -75,6 +75,59 @@ def test_all_pages_at_four_viewports(server_url, browser):
         context.close()
 
 
+def test_classic_editorial_typography_at_mobile_and_desktop(server_url, browser):
+    """Reading measure and book-style hierarchy remain usable at all breakpoints."""
+    for width, height in ((320, 720), (390, 844), (768, 1024), (1440, 900)):
+        context = browser.new_context(viewport={"width": width, "height": height})
+        page = context.new_page()
+        response = page.goto(server_url + "/", wait_until="load")
+        assert response is not None and response.status == 200
+        home = page.evaluate("""() => {
+          const style = (selector) => getComputedStyle(document.querySelector(selector));
+          const heading = document.querySelector('.hero h1');
+          return {
+            title: heading.textContent.trim(),
+            headingFont: style('.hero h1').fontFamily,
+            bodyFont: style('body').fontFamily,
+            headingAlign: style('.hero').textAlign,
+            headingSize: parseFloat(style('.hero h1').fontSize),
+            overflowing: document.documentElement.scrollWidth > window.innerWidth + 1,
+            wordmark: document.querySelector('.wordmark').textContent.trim()
+          };
+        }""")
+        assert home["title"] == "Forward Science"
+        assert home["wordmark"] == "Forward Science"
+        assert "Baskerville" in home["headingFont"]
+        assert "Palatino Linotype" in home["bodyFont"]
+        assert home["headingAlign"] == "left"
+        assert home["headingSize"] >= 40
+        assert home["overflowing"] is False
+
+        page.goto(server_url + "/scientific-loop/", wait_until="load")
+        essay = page.evaluate("""() => {
+          const heading = getComputedStyle(document.querySelector('.chapter-heading'));
+          const prose = document.querySelector('article.prose');
+          const typography = getComputedStyle(prose);
+          return {
+            align: heading.textAlign,
+            fontFamily: typography.fontFamily,
+            fontSize: parseFloat(typography.fontSize),
+            lineHeight: parseFloat(typography.lineHeight),
+            measure: prose.getBoundingClientRect().width,
+            overflowing: document.documentElement.scrollWidth > window.innerWidth + 1,
+            controls: document.querySelectorAll('.reader-toc summary').length,
+          };
+        }""")
+        assert essay["align"] == "left"
+        assert "Palatino Linotype" in essay["fontFamily"]
+        assert essay["fontSize"] >= 18
+        assert 1.55 <= essay["lineHeight"] / essay["fontSize"] <= 1.8
+        assert essay["measure"] <= 677
+        assert essay["overflowing"] is False
+        assert essay["controls"] == 1
+        context.close()
+
+
 def test_real_navigation_and_paragraph_links(server_url, browser):
     context = browser.new_context()
     page = context.new_page()

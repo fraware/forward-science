@@ -312,3 +312,24 @@ def test_build_refuses_symlinked_media_output(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="media path is a symlink"):
         module.build(ROOT, output, None, strict=True)
     assert (external / "keep.mp3").read_bytes() == b"keep"
+
+
+def test_editorial_typography_has_no_remote_font_dependency() -> None:
+    """Use a readable, stable book face without tracking or CDN font requests."""
+    css = (ROOT / "styles.css").read_text(encoding="utf-8")
+    assert '"Palatino Linotype"' in css
+    assert 'Baskerville' in css
+    assert '--display:' in css
+    assert 'font: 20px/1.7 var(--serif)' in css
+    assert 'overflow-wrap: break-word' in css
+    assert '.hero { padding-block:' in css
+    for forbidden in ('@import', '@font-face', 'fonts.googleapis', 'fonts.gstatic'):
+        assert forbidden not in css
+    homepage = (ROOT / "templates/index.html.j2").read_text(encoding="utf-8")
+    assert '<h1 id="page-title">Forward Science</h1>' in homepage
+    assert 'FORWARD SCIENCE<span' not in homepage
+    assert 'Six essays on scientific discovery' in homepage
+    for template in ("index.html.j2", "essay.html.j2"):
+        html = (ROOT / "templates" / template).read_text(encoding="utf-8")
+        assert 'name="theme-color" content="#faf9f6"' in html
+        assert 'http://fonts.' not in html and 'https://fonts.' not in html
