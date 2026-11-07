@@ -204,15 +204,19 @@ def test_public_pages_have_no_narration_history_or_per_essay_actions(server_url,
         assert page.evaluate(
             "() => localStorage.getItem('forward-science:reading:v1')"
         ) is None
-        page.evaluate("() => window.scrollTo(0, document.body.scrollHeight / 2)")
-        page.wait_for_timeout(100)
+        page.evaluate("""() => {
+          document.documentElement.style.scrollBehavior = 'auto';
+          const article = document.querySelector('article.prose');
+          const top = article.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: top + article.offsetHeight / 2, behavior: 'instant' });
+        }""")
+        # Wait for the browser's scroll and animation frame, not an arbitrary delay.
+        page.wait_for_function(
+            "() => parseFloat(document.querySelector('.reading-progress span').style.width) > 0"
+        )
         assert page.evaluate(
             "() => localStorage.getItem('forward-science:reading:v1')"
         ) is None
-        # The non-persistent progress indicator remains functional.
-        assert page.locator(".reading-progress span").evaluate(
-            "(el) => parseFloat(el.style.width) > 0"
-        )
         context.close()
 
 
