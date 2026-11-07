@@ -26,28 +26,34 @@
   </div></header>
   <main id="main">
     <section class="hero narrow" aria-labelledby="page-title">
-      <p class="eyebrow">Six essays on scientific discovery</p>
+      <p class="eyebrow">A series in six parts</p>
       <h1 id="page-title">Forward Science</h1>
       <p class="hero__deck">The institutions that turn new intelligence into scientific progress.</p>
       <p class="hero__byline">Mateo H. Petel <span aria-hidden="true">·</span> June 2026</p>
     </section>
-    <div class="shell"><hr class="rule"></div>
+    <nav class="chapter-register chapter-register--home narrow" aria-label="The six parts of Forward Science">
+      <span class="chapter-register__label">The series</span>
+      <ol>
+      {% for e in essays %}
+        <li><a href="{{ e.slug }}/" aria-label="Part {{ e.chapter_roman }}. {{ e.title }}" title="{{ e.title }}"><span aria-hidden="true">{{ e.chapter_roman }}</span></a></li>
+      {% endfor %}
+      </ol>
+    </nav>
     <section class="introduction narrow" aria-label="Introduction">
       <p class="introduction__lead">AI is expanding what researchers are able to attempt. Scientific progress depends on how institutions turn that capability into evidence, judgment, and the next experiment.</p>
-      <p>Forward Science develops an institutional framework for that transformation. Its central concerns are the scientific loop through which research advances, the people who strengthen it, the traditions that illuminate their role, and the structures needed to support their work.</p>
-      <p>The following essays develop these ideas as parts of a single argument. Each stands on its own and contributes to the larger framework.</p>
+      <p>The six essays follow the scientific loop, the people who strengthen it, and the institutions that support their work.</p>
     </section>
     <aside id="continue-reading" class="continue-reading narrow" hidden aria-label="Continue reading">
       <p class="eyebrow">Pick up where you left off</p>
       <a href="#" id="continue-reading-link">Continue reading</a>
       <button type="button" id="clear-reading-progress">Clear reading history</button>
     </aside>
-    <section id="essays" class="essays shell" aria-labelledby="essays-title">
-      <div class="section-header"><h2 id="essays-title">The essays</h2><span>Six texts · June 2026</span></div>
+    <section id="essays" class="essays" aria-labelledby="essays-title">
+      <div class="section-header"><h2 id="essays-title">Contents</h2><span>June 2026</span></div>
       <ol class="essay-list">
       {% for e in essays %}
-        <li class="essay">
-          <div class="essay__number" aria-hidden="true">{{ e.number }}</div>
+        <li class="essay" id="part-{{ e.chapter_roman }}">
+          <div class="essay__number" aria-hidden="true">{{ e.chapter_roman }}</div>
           <div class="essay__content">
             <p class="essay__concept">{{ e.concept }}</p>
             <h3><a href="{{ e.slug }}/">{{ e.title }}</a></h3>
@@ -62,15 +68,13 @@
       {% endfor %}
       </ol>
     </section>
-    <section class="closing narrow" aria-labelledby="closing-title">
-      <p class="eyebrow">The central question</p>
-      <h2 id="closing-title">What does it take for a laboratory to learn more from the intelligence it already has?</h2>
-      <p>Forward Science places that question at the center of AI-enabled discovery.</p>
+    <section class="colophon narrow" id="about" aria-labelledby="colophon-title">
+      <h2 id="colophon-title">Colophon</h2>
+      <div class="colophon__text">
+        <p>Forward Science is a series of six essays by <strong>Mateo H. Petel</strong>, first published in June 2026 in <a href="https://mateopetel.substack.com/t/forward-science" target="_blank" rel="noopener noreferrer">Critical Systems</a>.</p>
+        <p>This edition brings the original essays and their references together in one place.</p>
+      </div>
     </section>
-    <section class="about shell" id="about" aria-labelledby="about-title"><div class="about__inner">
-      <h2 id="about-title">About the series</h2>
-      <p>Written by <strong>Mateo H. Petel</strong>. Originally published on <a href="https://mateopetel.substack.com/t/forward-science" target="_blank" rel="noopener noreferrer">Critical Systems <span aria-hidden="true">↗</span></a> in June 2026.</p>
-    </div></section>
   </main>
   <footer class="site-footer shell"><span>© 2026 Mateo H. Petel</span><a href="#main">Back to top ↑</a></footer>
 </body>

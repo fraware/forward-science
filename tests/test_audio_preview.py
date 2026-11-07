@@ -67,7 +67,7 @@ def test_preview_render_shows_honest_status_native_controls_and_no_autoplay():
         lstrip_blocks=True,
     )
     html = env.get_template("essay.html.j2").render(
-        essay=essay, previous=None, next=essays[1], base_url="https://example.org",
+        essay=essay, essays=essays, previous=None, next=essays[1], base_url="https://example.org",
     )
     page = BeautifulSoup(html, "html.parser")
     title = page.select_one("#listen .audio-edition__title")
