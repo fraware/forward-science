@@ -46,18 +46,21 @@ def test_previews_refused_without_exact_private_media(tmp_path):
         preview.validate(ROOT, folder)
 
 
-def test_preview_render_shows_honest_status_native_controls_and_no_autoplay():
+def test_preview_metadata_does_not_render_unrequested_public_controls():
+    """Recorded drafts remain verifiable without adding a website audio player."""
     from sys import path as syspath
     syspath.insert(0, str(ROOT / "scripts"))
     from build import load_essays
     essays = load_essays(ROOT)
     essay = essays[0]
-    sha = json.loads((ROOT / "content/audio-previews.json").read_text())["recordings"][essay["slug"]]["sha256"]
+    sha = json.loads((ROOT / "content/audio-previews.json").read_text())[
+        "recordings"
+    ][essay["slug"]]["sha256"]
     essay.update({
         "audio": f"media/preview-{essay['slug']}.mp3",
         "audio_sha256": sha,
         "audio_preview": True,
-        "audio_voice": {"type":"synthetic", "name":"Michael", "provider":"Kokoro-82M"},
+        "audio_voice": {"type": "synthetic", "name": "Michael", "provider": "Kokoro-82M"},
     })
     env = Environment(
         loader=FileSystemLoader(str(ROOT / "templates")),
@@ -66,34 +69,22 @@ def test_preview_render_shows_honest_status_native_controls_and_no_autoplay():
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    html = env.get_template("essay.html.j2").render(
-        essay=essay, essays=essays, previous=None, next=essays[1], base_url="https://example.org",
+    essay_html = env.get_template("essay.html.j2").render(
+        essay=essay, essays=essays, previous=None, next=essays[1],
+        base_url="https://example.org",
     )
-    page = BeautifulSoup(html, "html.parser")
-    disclosure = page.select_one("details#listen.audio-edition")
-    assert disclosure is not None and not disclosure.has_attr("open")
-    summary = disclosure.select_one("summary")
-    assert summary is not None and "Listen to this essay" in summary.get_text(" ", strip=True)
-    assert "AI preview" in summary.get_text(" ", strip=True)
-    description = page.select_one("#listen .audio-edition__description").get_text(" ", strip=True)
-    assert "AI narration by Michael" in description
-    assert "not yet received full editorial listening review" in description
-    player = page.select_one("#listen audio[data-audio-for]")
-    assert player["src"] == f"../media/preview-{essay['slug']}.mp3?v={sha[:12]}"
-    assert player["data-audio-sha"] == sha
-    assert player.has_attr("controls")
-    assert player["preload"] == "none"
-    assert not player.has_attr("autoplay")
-    assert player.find_parent("details") is disclosure
-    assert page.select_one(".audio-skip-back") is not None
-    assert page.select_one(".audio-skip-forward") is not None
-    assert page.select_one(".audio-resume") is not None
-    assert page.select_one(".audio-speed") is not None
-    assert page.select_one('article[aria-label="Full essay"]') is not None
-    home = env.get_template("index.html.j2").render(essays=essays, base_url="https://example.org")
-    homepage = BeautifulSoup(home, "html.parser")
-    link = homepage.select_one(f'a[href="{essay["slug"]}/#listen"]')
-    assert link and "preview" in link.get_text().lower()
+    homepage = env.get_template("index.html.j2").render(
+        essays=essays, base_url="https://example.org",
+    )
+    page = BeautifulSoup(essay_html, "html.parser")
+    home = BeautifulSoup(homepage, "html.parser")
+    assert page.select_one("article.prose") is not None
+    assert page.select_one("audio, #listen, .audio-edition, .resume-reading") is None
+    assert home.select_one(".essay__metadata, #continue-reading") is None
+    assert home.select_one(f'a[href="{essay["slug"]}/#listen"]') is None
+    assert not any(
+        text in essay_html for text in ("AI preview", "AI narration by Michael")
+    )
 
 
 def test_media_check_rejects_corrupt_mp3(tmp_path):

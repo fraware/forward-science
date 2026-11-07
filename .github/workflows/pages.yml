@@ -33,29 +33,16 @@ jobs:
           fi
           ffmpeg -version | head -n 1
           ffprobe -version | head -n 1
-      - name: Retrieve versioned preview recordings
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          mkdir -p narration-preview preview-archive
-          gh release download forward-science-audio-previews-2026-11-07 \
-            --pattern 'Forward-Science-Michael-1.10x-previews.zip' \
-            --dir preview-archive
-          python -m zipfile -e \
-            preview-archive/Forward-Science-Michael-1.10x-previews.zip \
-            narration-preview
-          test -s narration-preview/UNREVIEWED-MANIFEST.json
       - name: Validate and compile the complete publication
         env:
           SITE_BASE_URL: ${{ vars.SITE_BASE_URL || 'https://fraware.github.io/forward-science' }}
         run: |
           node --check reader.js
           python -m pytest -q -rs
-          python scripts/build.py --strict --base-url "$SITE_BASE_URL" --preview-dir narration-preview
-          test "$(find site/media -maxdepth 1 -name 'preview-*.mp3' -type f | wc -l)" -eq 6
-          grep -q "Listen (preview)" site/index.html
+          python scripts/build.py --strict --base-url "$SITE_BASE_URL"
+          test ! -d site/media
+          ! grep -Eiq 'listen \(preview\)|pick up where you left off|clear reading history|read the essay' site/index.html
+          ! grep -Eiq 'AI preview|AI narration by Michael|<audio|id="listen"|resume-reading' site/forward-science/index.html
           test -f site/sitemap.xml
           test -f site/robots.txt
       - uses: actions/configure-pages@v5

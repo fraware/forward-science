@@ -62,9 +62,6 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .external-arrow { font-family: var(--sans); font-weight: 400; font-size: .43em; vertical-align: 25%; margin-left: .16em; color: var(--muted); }
 .essay__subtitle { margin: 11px 0 0; font: italic 18px/1.5 var(--serif); color: #4e5148; }
 .essay__summary { max-width: 660px; margin: 19px 0 0; font: 18px/1.62 var(--serif); color: #565850; }
-.essay__metadata { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 0; font: 14px/1.5 var(--serif); color: var(--muted); }
-.essay__metadata a { color: var(--accent); text-decoration: none; }
-.essay__metadata a:hover { text-decoration: underline; }
 /* Six parts form a quiet, repeatable bookplate across the publication. */
 .chapter-register {
   display: grid;
@@ -150,7 +147,6 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
   .essay h3 { font-size: 28px; }
   .essay__subtitle { font-size: 16px; }
   .essay__summary { font-size: 17px; margin-top: 16px; }
-  .essay__metadata { flex-wrap: wrap; gap: 7px; }
   .chapter-register { grid-template-columns: 73px minmax(0, 1fr); column-gap: 13px; }
   .chapter-register ol { gap: 4px; }
   .chapter-register a { font-size: 16px; min-height: 40px; }
@@ -169,7 +165,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .chapter-register a { transition: none; } }
 @media print {
   :root { --paper: #fff; --ink: #000; --muted: #444; }
-  .site-header, .site-footer, .skip-link, .essay__metadata a { display: none; }
+  .site-header, .site-footer, .skip-link { display: none; }
   .hero { padding-top: 30px; }
   .essay { break-inside: avoid; }
 }
@@ -236,35 +232,8 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .reader-toc ol { margin: 10px 0 4px; padding-left: 20px; }
 .reader-toc li { margin: 0 0 9px; }
 .reader-toc a { text-decoration-thickness: 1px; }
-.resume-reading, .continue-reading button { font: inherit; color: var(--accent); background: transparent; border: 0; padding: 5px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.resume-reading { margin-top: 15px; }
-.resume-reading[hidden] { display: none; }
-.resume-reading:focus-visible, .continue-reading button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .reading-progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 30; pointer-events: none; }
 .reading-progress span { display: block; height: 100%; width: 0; background: var(--accent); }
 .prose p[id] { scroll-margin-top: 32px; }
-.continue-reading { margin-bottom: 38px; border-top: 1px solid var(--line); padding-top: 22px; font: 14px/1.6 var(--sans); }
-.continue-reading a { display: inline-block; font: 18px/1.5 var(--serif); margin: 12px 18px 0 0; }
-.continue-reading button { display: inline-block; font-size: 12px; }
-/* Reading is the default. Narration is a quiet, opt-in disclosure. */
-.audio-edition { margin-top: 18px; padding: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); scroll-margin-top: 24px; }
-.audio-edition > summary { display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 13px 0; list-style: none; }
-.audio-edition > summary::-webkit-details-marker { display: none; }
-.audio-edition > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.audio-edition__title { font: 400 15px/1.5 var(--serif); color: var(--ink); }
-.audio-edition__note { margin-left: auto; font: italic 12px/1.5 var(--serif); color: var(--muted); }
-.audio-edition > summary::after { content: "+"; width: 15px; text-align: center; font: 18px/1 var(--serif); color: var(--accent); }
-.audio-edition[open] > summary::after { content: "−"; }
-.audio-edition__content { padding: 9px 0 19px; }
-.audio-edition audio { display: block; width: 100%; margin-bottom: 12px; }
-.audio-edition__tools { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; font: 12px/1.5 var(--sans); }
-.audio-edition__tools button { cursor: pointer; min-height: 36px; border: 1px solid var(--line); color: var(--ink); background: transparent; border-radius: 3px; padding: 7px 12px; font: inherit; }
-.audio-edition__tools button:disabled { opacity: .45; cursor: default; }
-.audio-edition__tools button[hidden] { display: none; }
-.audio-edition__tools :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.audio-edition__tools label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
-.audio-edition select { font: inherit; background: var(--paper); color: var(--ink); border: 1px solid var(--line); padding: 6px; min-height: 36px; }
-.audio-feedback { min-height: 1em; color: var(--muted); font: 12px/1.5 var(--sans); margin: 5px 0 0; }
-@media print { .reading-tools, .reading-progress, .continue-reading { display: none !important; } }
+@media print { .reading-tools, .reading-progress { display: none !important; } }
 
-.audio-edition__description { font: 12px/1.6 var(--sans); color: var(--muted); margin: 0 0 14px; }

@@ -26,4 +26,4 @@ jobs:
       - name: Inventory original essay citations and verify link safety
         run: python scripts/audit_references.py
       - run: python scripts/build.py --strict --base-url https://fraware.github.io/forward-science
-      - run: test ! -e site/downloads && ! grep -R -E 'Read offline|downloads/forward-science[.](pdf|epub|md)' site --include='*.html'
+      - run: test ! -e site/downloads && ! -d site/media && ! grep -R -E 'Read offline|Listen \\(preview\\)|Pick up where you left off|Clear reading history|downloads/forward-science[.](pdf|epub|md)' site --include='*.html'

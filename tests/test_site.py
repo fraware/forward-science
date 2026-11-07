@@ -171,24 +171,10 @@ def test_audio_manifest_validates_files_and_sha256(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="Suspicious MP3 size|listening review"):
         module.build(source, tmp_path / "unreviewed", None, strict=True)
     page = BeautifulSoup((site / slug / "index.html").read_text(), "html.parser")
-    player = page.select_one("audio[data-audio-for='scientific-loop']")
-    assert player is not None
-    assert player["src"] == "../media/scientific-loop.mp3?v=" + hashlib.sha256(data).hexdigest()[:12]
-    assert player["data-audio-sha"] == hashlib.sha256(data).hexdigest()
-    disclosure = page.select_one("details#listen.audio-edition")
-    assert disclosure is not None and not disclosure.has_attr("open")
-    assert disclosure.select_one("summary") is not None
-    assert "Listen to this essay" in disclosure.select_one("summary").get_text(" ", strip=True)
-    assert player["preload"] == "none" and not player.has_attr("autoplay")
-    assert player.find_parent("details") is disclosure
-    assert page.select_one(".audio-skip-back[disabled]") is not None
-    assert page.select_one(".audio-skip-forward[disabled]") is not None
-    assert page.select_one(".audio-resume[hidden]") is not None
-    assert page.select_one(".audio-feedback[role='status']") is not None
-    description = page.select_one(".audio-edition__description")
-    assert description is not None
-    assert "Synthetic narration" in description.get_text(" ", strip=True)
-    assert "af_heart" in description.get_text(" ", strip=True)
+    # The audio archive retains file integrity checks, though the website
+    # intentionally exposes no player or narration labels.
+    assert page.select_one("audio, #listen, .audio-edition") is None
+    assert "AI preview" not in page.get_text(" ", strip=True)
     assert (site / "media" / f"{slug}.mp3").read_bytes() == data
     media.write_bytes(b"tampered")
     with pytest.raises(ValueError, match="Audio checksum mismatch"):
@@ -233,7 +219,7 @@ def test_no_browser_tts_or_copy_citation_in_published_essays(tmp_path: Path) -> 
         assert "Copy citation" not in page.get_text(" ", strip=True)
         assert page.select_one('article[aria-label="Full essay"]') is not None
         assert page.select_one("audio") is None
-        assert page.select_one(".resume-reading[hidden]") is not None
+        assert page.select_one(".resume-reading") is None
 
 
 def test_incremental_build_removes_legacy_speech_asset(tmp_path: Path) -> None:
@@ -382,3 +368,29 @@ def test_series_register_and_colophon_are_consistent_across_seven_pages(tmp_path
             f'Part {essay["chapter_roman"]}'
         )
         assert page.select_one('article[aria-label="Full essay"]')
+
+
+def test_public_homepage_omits_progress_and_essay_action_metadata(tmp_path: Path) -> None:
+    """The six chapter titles, not utility links or timestamps, organize the index."""
+    out = tmp_path / "clean-home"
+    essays = module.build(ROOT, out, "https://example.org/forward-science", strict=True)
+    home = BeautifulSoup((out / "index.html").read_text(encoding="utf-8"), "html.parser")
+    entries = home.select("ol.essay-list > li")
+    assert len(entries) == 6
+    assert [e.select_one("h3 a")["href"] for e in entries] == [
+        essay["slug"] + "/" for essay in essays
+    ]
+    assert all(len(e.select("a")) == 1 for e in entries)
+    assert all(not e.select("time, .essay__metadata") for e in entries)
+    assert not home.select_one("#continue-reading, #clear-reading-progress")
+    assert not home.select_one('script[src="reader.js"]')
+    assert "Pick up where you left off" not in home.get_text(" ", strip=True)
+    assert "Listen (preview)" not in home.get_text(" ", strip=True)
+    for essay in essays:
+        page = BeautifulSoup(
+            (out / essay["slug"] / "index.html").read_text(encoding="utf-8"),
+            "html.parser",
+        )
+        assert page.select_one("article.prose") is not None
+        assert page.select_one("#listen, .audio-edition, audio, .resume-reading") is None
+    assert not (out / "media").exists()

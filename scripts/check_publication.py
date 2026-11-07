@@ -15,10 +15,17 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 OMITTED_FILES = {".nojekyll"}
-REMOVED_DOWNLOADS = (
+REMOVED_PUBLIC_ASSETS = (
     "downloads/forward-science.pdf",
     "downloads/forward-science.epub",
     "downloads/forward-science.md",
+    # Previously published recordings must disappear with the retired player.
+    "media/preview-forward-science.mp3",
+    "media/preview-forward-deployed-scientists.mp3",
+    "media/preview-scientific-loop.mp3",
+    "media/preview-extension-agents.mp3",
+    "media/preview-political-economy.mp3",
+    "media/preview-future-laboratory.mp3",
 )
 LARGE_FILE_BYTES = 3_000_000
 
@@ -96,12 +103,12 @@ def check_once(
         except (OSError, ValueError, TimeoutError) as exc:
             problems.append(f"{route}: fetch failed ({type(exc).__name__}: {exc})")
 
-    for old in REMOVED_DOWNLOADS:
+    for old in REMOVED_PUBLIC_ASSETS:
         url = origin + "/" + old
         try:
             status, _, _ = transport(url, "GET")
             if status != 404:
-                problems.append(f"{old}: removed public edition returned HTTP {status}, expected 404")
+                problems.append(f"{old}: retired public asset returned HTTP {status}, expected 404")
         except (OSError, ValueError, TimeoutError) as exc:
             problems.append(f"{old}: unable to confirm removal ({type(exc).__name__}: {exc})")
     return problems
@@ -116,7 +123,7 @@ def check_with_retries(
     for attempt in range(1, attempts + 1):
         failures = check_once(site, base_url)
         if not failures:
-            print(f"PUBLIC RELEASE VERIFIED: all site files and removed-download routes ({attempt=})")
+            print(f"PUBLIC RELEASE VERIFIED: all site files and retired asset routes ({attempt=})")
             return
         print(f"Public verification attempt {attempt}/{attempts}: {len(failures)} problem(s)")
         for problem in failures[:16]:
