@@ -201,9 +201,10 @@ def test_public_pages_have_no_narration_history_or_per_essay_actions(server_url,
         assert page.locator("#listen, audio, .audio-edition, .resume-reading").count() == 0
         assert page.locator(".reader-toc summary").count() == 1
         assert page.locator("article.prose p[id]").count() >= 10
-        assert page.evaluate(
-            "() => localStorage.getItem('forward-science:reading:v1')"
-        ) is None
+        # Defer scripts may still be executing just after navigation.
+        page.wait_for_function(
+            "() => localStorage.getItem('forward-science:reading:v1') === null"
+        )
         page.evaluate("""() => {
           document.documentElement.style.scrollBehavior = 'auto';
           const article = document.querySelector('article.prose');
