@@ -27,12 +27,61 @@ TOPICS = {
 }
 
 
+# These editorial definitions summarize the arguments in the corresponding essays.
+# They are navigational descriptions, not alterations of the original text.
+CONCEPTS = [
+    {
+        "id": "forward-science",
+        "term": "Forward Science",
+        "definition": "An institutional approach to incorporating AI, computation, and automation into scientific inquiry through accountable evidence, judgment, and research decisions.",
+        "essay_slug": "forward-science",
+        "related_terms": ["AI for science", "scientific institutions"],
+    },
+    {
+        "id": "forward-deployed-scientist",
+        "term": "Forward-Deployed Scientist",
+        "definition": "A scientist-builder working within a research environment to connect advanced technical systems with the laboratory's questions, instruments, evidentiary standards, and next experiments.",
+        "essay_slug": "forward-deployed-scientists",
+        "related_terms": ["forward-deployed scientists", "deployed scientists"],
+    },
+    {
+        "id": "scientific-loop",
+        "term": "Scientific Loop",
+        "definition": "The organized passage from a research question through representation, experimentation, measurement, interpretation, and validation to an informed subsequent action.",
+        "essay_slug": "scientific-loop",
+        "related_terms": ["experimental validation", "research loop"],
+    },
+    {
+        "id": "scientific-intermediaries",
+        "term": "Scientific Intermediaries",
+        "definition": "People and institutional roles that translate established scientific knowledge or technical capability into situated research practice, including the traditions of extension work and research software engineering.",
+        "essay_slug": "extension-agents",
+        "related_terms": ["agricultural extension", "research software engineering"],
+    },
+    {
+        "id": "scientific-capacity",
+        "term": "Scientific Capacity",
+        "definition": "A research institution's sustained ability to conduct and improve inquiry, considered alongside the funding, credit, governance, and careers that support deployed scientific expertise.",
+        "essay_slug": "political-economy",
+        "related_terms": ["research funding", "scientific workforce"],
+    },
+    {
+        "id": "self-driving-laboratory",
+        "term": "Self-Driving Laboratory",
+        "definition": "A research environment that integrates automation and computational decisions across experiments; its scientific value depends on sound evidence, memory, validation, and human or institutional judgment.",
+        "essay_slug": "future-laboratory",
+        "related_terms": ["laboratory automation", "loop-governed laboratory"],
+    },
+]
+
+
 def schemas(essays: list[dict], base_url: str) -> tuple[dict, dict[str, dict]]:
     """Return Schema.org collection and article graphs for published essays."""
     if set(TOPICS) != {e["slug"] for e in essays}:
         raise ValueError("Discovery subjects must match the entire essay manifest")
     root_url = base_url + "/"
-    author_id = root_url + "#author"
+    # Reuse the public author's stable entity ID across both websites.
+    author_id = "https://mateopetel.xyz/#person"
     website_id = root_url + "#website"
     series_id = root_url + "#series"
     description = (
@@ -112,6 +161,8 @@ def schemas(essays: list[dict], base_url: str) -> tuple[dict, dict[str, dict]]:
                     "isBasedOn": {"@type": "Article", "url": essay["original_url"]},
                     "about": [{"@type": "Thing", "name": term}
                               for term in TOPICS[essay["slug"]]],
+                    "keywords": list(TOPICS[essay["slug"]]),
+                    "isAccessibleForFree": True,
                 },
                 {
                     "@type": "BreadcrumbList", "@id": url + "#breadcrumb",
@@ -125,6 +176,94 @@ def schemas(essays: list[dict], base_url: str) -> tuple[dict, dict[str, dict]]:
             ],
         }
     return overview, article_graphs
+
+
+def concept_schema(essays: list[dict], base_url: str) -> dict:
+    """Describe the separate concept guide without treating it as an original essay."""
+    if {c["essay_slug"] for c in CONCEPTS} != {e["slug"] for e in essays}:
+        raise ValueError("Concept definitions must map to the published corpus")
+    root_url = base_url + "/"
+    url = root_url + "concepts/"
+    defined_terms = [
+        {
+            "@type": "DefinedTerm",
+            "@id": url + "#" + concept["id"],
+            "name": concept["term"],
+            "description": concept["definition"],
+            "url": url + "#" + concept["id"],
+            "inDefinedTermSet": {"@id": url + "#terms"},
+            "subjectOf": {"@id": root_url + concept["essay_slug"] + "/#article"},
+        }
+        for concept in CONCEPTS
+    ]
+    return {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "CollectionPage", "@id": url + "#webpage",
+                "url": url, "name": "Concepts in Forward Science",
+                "description": "Definitions and primary essay references for six concepts in Forward Science.",
+                "inLanguage": "en", "isPartOf": {"@id": root_url + "#website"},
+                "mainEntity": {"@id": url + "#terms"},
+            },
+            {
+                "@type": "DefinedTermSet", "@id": url + "#terms",
+                "url": url, "name": "Forward Science concepts",
+                "description": "An editorial guide to concepts introduced across the six essays.",
+                "hasDefinedTerm": [{"@id": term["@id"]} for term in defined_terms],
+            },
+            *defined_terms,
+        ],
+    }
+
+
+def corpus_index(essays: list[dict], base_url: str) -> dict:
+    """Expose factual source and reading metadata for retrieval systems."""
+    root_url = base_url + "/"
+    return {
+        "schema_version": 1,
+        "title": "Forward Science",
+        "url": root_url,
+        "language": "en",
+        "description": "Six essays on institutions for AI-enabled scientific discovery.",
+        "author": {
+            "name": "Mateo H. Petel",
+            "website": "https://mateopetel.xyz/",
+            "original_publications": "https://mateopetel.substack.com/t/forward-science",
+            "github": "https://github.com/fraware",
+        },
+        "concept_guide": root_url + "concepts/",
+        "concepts": [
+            {
+                **concept,
+                "url": root_url + "concepts/#" + concept["id"],
+                "primary_essay": root_url + concept["essay_slug"] + "/",
+            }
+            for concept in CONCEPTS
+        ],
+        "essays": [
+            {
+                "position": index,
+                "title": essay["title"],
+                "subtitle": essay["subtitle"],
+                "summary": essay["summary"],
+                "date_published": essay["date"],
+                "url": root_url + essay["slug"] + "/",
+                "original_publication": essay["original_url"],
+                "subjects": list(TOPICS[essay["slug"]]),
+                "navigation": [
+                    {
+                        "label": landmark["label"],
+                        "url": root_url + essay["slug"] + "/#" + landmark["anchor"],
+                    }
+                    for landmark in essay["landmarks"]
+                ],
+            }
+            for index, essay in enumerate(essays, start=1)
+        ],
+        "rights": "Essays and original editorial content © 2026 Mateo H. Petel. All rights reserved.",
+        "source_note": "This metadata describes the author's essays; it does not independently verify their claims.",
+    }
 
 
 def write_assets(root: Path, output: Path, base_url: str, essays: list[dict]) -> None:
@@ -145,6 +284,13 @@ def write_assets(root: Path, output: Path, base_url: str, essays: list[dict]) ->
         "(https://mateopetel.substack.com/t/forward-science). "
         "These are two editions of the author's work, "
         "not independent confirmations of the arguments.",
+        "",
+        "## Machine-readable navigation",
+        "",
+        f"- [Concept guide]({root_url}concepts/): short definitions with primary essay references.",
+        f"- [Corpus metadata]({root_url}corpus.json): JSON index of essay URLs, concepts, dates, and section anchors.",
+        f"- [XML sitemap]({root_url}sitemap.xml): canonical HTML routes.",
+        f"- [Atom feed]({root_url}feed.xml): original publication timestamps.",
         "",
         "## Concepts",
         "",
@@ -183,6 +329,10 @@ def write_assets(root: Path, output: Path, base_url: str, essays: list[dict]) ->
         "",
     ])
     (output / "llms.txt").write_text("\n".join(guide), encoding="utf-8")
+    (output / "corpus.json").write_text(
+        json.dumps(corpus_index(essays, base_url), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     provenance = json.loads(
         (root / "content" / "import-provenance.json").read_text(encoding="utf-8")
