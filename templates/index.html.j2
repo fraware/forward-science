@@ -13,13 +13,15 @@
   <meta property="og:description" content="Forward Science examines how AI, scientific judgment, and forward-deployed scientists strengthen research institutions and the scientific loop.">
   {% if base_url %}<meta property="og:url" content="{{ base_url }}/"><link rel="canonical" href="{{ base_url }}/">{% endif %}
   <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Forward Science | AI for Science and Forward-Deployed Scientists">
   <meta name="twitter:description" content="Forward Science examines how AI, scientific judgment, and forward-deployed scientists strengthen research institutions and the scientific loop.">
-  <title>Forward Science</title>
+  <title>Forward Science | AI for Science and Forward-Deployed Scientists</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   {% if structured_data %}
   <link rel="alternate" type="application/atom+xml" title="Forward Science feed" href="feed.xml">
   <link rel="help" type="text/plain" title="Forward Science reading guide" href="llms.txt">
+  <link rel="alternate" type="application/json" title="Forward Science corpus metadata" href="corpus.json">
   <script type="application/ld+json">{{ structured_data | tojson }}</script>
   {% endif %}
 </head>
@@ -46,6 +48,7 @@
     <section class="introduction narrow" aria-label="Introduction">
       <p class="introduction__lead">AI is expanding what researchers are able to attempt. Scientific progress depends on how institutions turn that capability into evidence, judgment, and the next experiment.</p>
       <p>The six essays examine Forward Science, the work of forward-deployed scientists, the scientific loop, and the institutions that connect evidence to the next experiment.</p>
+      {% if structured_data %}<p>Explore the <a href="concepts/">concept guide</a> for concise definitions and links to the primary essays.</p>{% endif %}
     </section>
     <section id="essays" class="essays" aria-labelledby="essays-title">
       <div class="section-header"><h2 id="essays-title">Contents</h2><span>June 2026</span></div>
