@@ -80,7 +80,8 @@ def schemas(essays: list[dict], base_url: str) -> tuple[dict, dict[str, dict]]:
     if set(TOPICS) != {e["slug"] for e in essays}:
         raise ValueError("Discovery subjects must match the entire essay manifest")
     root_url = base_url + "/"
-    author_id = root_url + "#author"
+    # Reuse the public author's stable entity ID across both websites.
+    author_id = "https://mateopetel.xyz/#person"
     website_id = root_url + "#website"
     series_id = root_url + "#series"
     description = (
