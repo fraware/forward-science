@@ -17,6 +17,8 @@
 
 Originally published in June 2026 by **Mateo H. Petel** on [Critical Systems](https://mateopetel.substack.com/t/forward-science).
 
+For source-aware reading and discovery, see the [machine-readable series guide](https://fraware.github.io/forward-science/llms.txt) or the [Atom feed](https://fraware.github.io/forward-science/feed.xml). The [personal research directory](https://mateopetel.xyz/research.html) connects these essays to the author's other published work.
+
 ### Run locally
 
 ```sh
