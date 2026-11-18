@@ -61,6 +61,10 @@ jobs:
           ! grep -Eiq 'AI preview|AI narration by Michael|resume-reading' site/forward-science/index.html
           test -f site/sitemap.xml
           test -f site/robots.txt
+          test -s site/feed.xml
+          test -s site/llms.txt
+          grep -q 'application/ld+json' site/index.html
+          grep -q 'application/ld+json' site/forward-deployed-scientists/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
