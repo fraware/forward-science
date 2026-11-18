@@ -46,6 +46,11 @@ def test_published_graphs_and_agent_index_are_source_grounded(tmp_path: Path) ->
     collection_graph = _graph(output / "index.html")
     assert _node(collection_graph, "CollectionPage")["url"] == root
     assert _node(collection_graph, "CreativeWorkSeries")["@id"] == root + "#series"
+    assert _node(collection_graph, "CreativeWorkSeries")["sameAs"] == "https://mateopetel.substack.com/t/forward-science"
+    author = _node(collection_graph, "Person")
+    assert author["url"] == "https://mateopetel.xyz/"
+    assert "https://mateopetel.substack.com/" in author["sameAs"]
+    assert "https://github.com/fraware" in author["sameAs"]
     items = _node(collection_graph, "ItemList")["itemListElement"]
     assert [item["position"] for item in items] == list(range(1, 7))
 
