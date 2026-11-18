@@ -35,7 +35,7 @@ def make_synthetic_export(tmp_path: Path) -> Path:
     archive_path = tmp_path / "mock-export.zip"
     with zipfile.ZipFile(archive_path, "w") as archive:
         for n, essay in enumerate(essays, start=100):
-            writer.writerow({"post_id": n, "title": essay["title"], "post_date": essay["date"], "is_published": "true"})
+            writer.writerow({"post_id": n, "title": essay["title"], "post_date": essay["date"] + "T12:00:00Z", "is_published": "true"})
             archive.writestr(f"publication/posts/{n}.{essay['slug']}.html", synthetic_post())
         archive.writestr("publication/posts.csv", csv_buffer.getvalue())
         archive.writestr("publication/email_list.private.csv", "email\nsecret@example.com\n")
@@ -106,7 +106,7 @@ def test_end_to_end_export_to_full_site(tmp_path: Path) -> None:
     assert page.select_one('meta[name="robots"]') is None
     assert page.select_one('link[rel="canonical"]')["href"] == "https://forward.example.org/scientific-loop/"
     sitemap = (out / "sitemap.xml").read_text()
-    assert sitemap.count("<loc>") == 7
+    assert sitemap.count("<loc>") == 8
     assert "forward.example.org" in (out / "robots.txt").read_text()
 
 
