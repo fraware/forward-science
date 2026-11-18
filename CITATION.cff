@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: >-
+  Cite the original essay and its publication URL when referencing a specific
+  argument. Use this collection-level citation for the six-essay series.
+type: generic
+title: "Forward Science"
+authors:
+  - family-names: Petel
+    given-names: "Mateo H."
+url: "https://fraware.github.io/forward-science/"
+repository-code: "https://github.com/fraware/forward-science"
+abstract: >-
+  Six essays on AI for science, forward-deployed scientists, the scientific
+  loop, scientific institutions, and the organization of AI-enabled discovery.
+  This citation describes a research essay collection, not a peer-reviewed
+  proceedings publication.
+keywords:
+  - AI for science
+  - forward-deployed scientists
+  - scientific discovery
+  - scientific institutions
+  - research essays
