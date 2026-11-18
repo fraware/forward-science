@@ -110,8 +110,7 @@ def test_published_pages_preserve_source_and_omit_export_footer(tmp_path: Path) 
         canonical = page.select_one('link[rel="canonical"]')["href"]
         assert page.select_one('meta[property="og:url"]')["content"] == canonical
         assert page.select_one('meta[property="og:site_name"]')["content"] == "Forward Science"
-        if essay["number"] == "00":
-            assert page.title.string == "Forward Science"
+        assert page.title.string == essay["seo_title"]
 
 def test_landmark_navigation_is_semantically_valid(tmp_path: Path) -> None:
     """Curated destinations must match real paragraphs without altering source."""
@@ -400,17 +399,24 @@ def test_public_homepage_omits_progress_and_essay_action_metadata(tmp_path: Path
     assert not (out / "media").exists()
 
 
-def test_browser_tab_title_and_description_use_only_publication_name(tmp_path: Path) -> None:
-    """Neither homepage nor article tabs identify the author or use punctuation suffixes."""
+def test_browser_tabs_have_unique_source_grounded_search_metadata(tmp_path: Path) -> None:
+    """Search titles are distinct while visible headings retain original essay titles."""
     out = tmp_path / "tab-metadata"
     essays = module.build(ROOT, out, "https://example.org/forward-science", strict=True)
-    for path in [out / "index.html"] + [
-        out / essay["slug"] / "index.html" for essay in essays
-    ]:
-        page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
-        assert page.title is not None
-        assert page.title.get_text(strip=True) == "Forward Science"
-        meta = page.select_one('meta[name="description"]')
-        assert meta is not None
-        assert meta["content"] == "Forward Science"
-        assert "—" not in page.title.get_text()
+    home = BeautifulSoup((out / "index.html").read_text(encoding="utf-8"), "html.parser")
+    assert home.title.get_text(strip=True) == "Forward Science | AI for Science and Forward-Deployed Scientists"
+    assert home.select_one("h1").get_text(strip=True) == "Forward Science"
+    titles = set()
+    for essay in essays:
+        page = BeautifulSoup(
+            (out / essay["slug"] / "index.html").read_text(encoding="utf-8"), "html.parser"
+        )
+        title = page.title.get_text(strip=True)
+        assert title == essay["seo_title"]
+        assert title not in titles
+        titles.add(title)
+        assert page.select_one('meta[name="description"]')["content"] == essay["seo_description"]
+        assert page.select_one("h1").get_text(strip=True) == essay["title"]
+        assert "Mateo H. Petel" not in title
+        assert "—" not in title
+    assert len(titles) == 6
