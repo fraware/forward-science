@@ -40,28 +40,35 @@ def test_published_graphs_and_agent_index_are_source_grounded(tmp_path: Path) ->
     essays = build.build(ROOT, output, BASE, strict=True)
     root = BASE + "/"
     home = BeautifulSoup((output / "index.html").read_text(encoding="utf-8"), "html.parser")
-    assert home.title.string == "Forward Science"
+    assert home.title.string == "Forward Science | AI for Science and Forward-Deployed Scientists"
     assert "forward-deployed scientists" in home.select_one('meta[name="description"]')["content"].lower()
     assert home.select_one('link[type="application/atom+xml"]')["href"] == "feed.xml"
     collection_graph = _graph(output / "index.html")
     assert _node(collection_graph, "CollectionPage")["url"] == root
     assert _node(collection_graph, "CreativeWorkSeries")["@id"] == root + "#series"
+    author = _node(collection_graph, "Person")
+    assert author["url"] == "https://mateopetel.xyz/"
+    assert "https://github.com/fraware" in author["sameAs"]
     items = _node(collection_graph, "ItemList")["itemListElement"]
     assert [item["position"] for item in items] == list(range(1, 7))
 
     guide = (output / "llms.txt").read_text(encoding="utf-8")
     assert "Forward-deployed scientist / deployed scientist" in guide
     assert guide.count("Original publication:") == 6
+    assert BASE + "/concepts/" in guide
+    assert BASE + "/corpus.json" in guide
     assert "https://mateopetel.substack.com/t/forward-science" in guide
+    assert len({e["seo_title"] for e in essays}) == 6
     for essay in essays:
         canonical = root + essay["slug"] + "/"
         assert canonical in guide
         assert essay["original_url"] in guide
         page = output / essay["slug"] / "index.html"
         soup = BeautifulSoup(page.read_text(encoding="utf-8"), "html.parser")
-        assert soup.title.string == "Forward Science"
+        assert soup.title.string == essay["seo_title"]
         assert soup.select_one('link[rel="canonical"]')["href"] == canonical
-        assert soup.select_one('meta[name="description"]')["content"] == essay["summary"]
+        assert soup.select_one('link[type="application/json"]')["href"] == "../corpus.json"
+        assert soup.select_one('meta[name="description"]')["content"] == essay["seo_description"]
         graph = _graph(page)
         article = _node(graph, "Article")
         assert article["@id"] == canonical + "#article"
@@ -71,6 +78,8 @@ def test_published_graphs_and_agent_index_are_source_grounded(tmp_path: Path) ->
         assert article["author"]["@id"] == root + "#author"
         assert "dateModified" not in article
         assert len(article["about"]) >= 3
+        assert article["keywords"]
+        assert article["isAccessibleForFree"] is True
         crumbs = _node(graph, "BreadcrumbList")["itemListElement"]
         assert crumbs[0]["item"] == root
         assert crumbs[1]["item"] == canonical
@@ -110,13 +119,69 @@ def test_preview_does_not_emit_published_edition_discovery_assets(tmp_path: Path
     output = tmp_path / "preview-output"
     output.mkdir()
     # An incremental preview build must withdraw stale discovery files.
-    for name in ("llms.txt", "feed.xml"):
+    for name in ("llms.txt", "feed.xml", "corpus.json"):
         (output / name).write_text("stale", encoding="utf-8")
+    (output / "concepts").mkdir()
+    (output / "concepts" / "index.html").write_text("stale", encoding="utf-8")
     build.build(source, output, BASE, strict=False)
-    for name in ("llms.txt", "feed.xml", "sitemap.xml", "robots.txt"):
+    for name in ("llms.txt", "feed.xml", "sitemap.xml", "robots.txt", "corpus.json"):
         assert not (output / name).exists()
+    assert not (output / "concepts").exists()
     home = BeautifulSoup((output / "index.html").read_text(encoding="utf-8"), "html.parser")
     assert home.select_one('script[type="application/ld+json"]') is None
+    assert home.select_one('a[href="concepts/"]') is None
     essay = BeautifulSoup((output / "forward-science" / "index.html").read_text(encoding="utf-8"), "html.parser")
     assert essay.select_one('meta[name="robots"]')["content"] == "noindex,follow"
     assert essay.select_one('script[type="application/ld+json"]') is None
+
+
+
+def test_concept_guide_and_corpus_index_are_source_linked(tmp_path: Path) -> None:
+    """Concept links, JSON metadata, and sitemap agree with canonical essays."""
+    output = tmp_path / "concept-site"
+    essays = build.build(ROOT, output, BASE, strict=True)
+    root = BASE + "/"
+
+    page = BeautifulSoup(
+        (output / "concepts" / "index.html").read_text(encoding="utf-8"),
+        "html.parser",
+    )
+    assert page.title.string == "Forward Science Concepts | Scientists and Scientific Loops"
+    assert page.select_one('link[rel="canonical"]')["href"] == root + "concepts/"
+    assert page.select_one('a[href="../#essays"]') is not None
+    assert "forward-deployed scientists" in page.get_text(" ", strip=True).lower()
+    assert len(page.select(".concept-item")) == 6
+
+    graph = _graph(output / "concepts" / "index.html")
+    term_set = _node(graph, "DefinedTermSet")
+    assert len(term_set["hasDefinedTerm"]) == 6
+    defined_terms = [node for node in graph if node["@type"] == "DefinedTerm"]
+    assert len(defined_terms) == 6
+
+    metadata = json.loads((output / "corpus.json").read_text(encoding="utf-8"))
+    assert metadata["schema_version"] == 1
+    assert metadata["url"] == root
+    assert metadata["author"]["website"] == "https://mateopetel.xyz/"
+    assert len(metadata["essays"]) == 6
+    assert len(metadata["concepts"]) == 6
+    assert [record["position"] for record in metadata["essays"]] == list(range(1, 7))
+    for record, essay in zip(metadata["essays"], essays, strict=True):
+        assert record["url"] == root + essay["slug"] + "/"
+        assert record["original_publication"] == essay["original_url"]
+        assert record["date_published"] == essay["date"]
+        assert record["navigation"]
+        for anchor in record["navigation"]:
+            assert anchor["url"].startswith(record["url"] + "#p-")
+
+    for concept in metadata["concepts"]:
+        assert concept["primary_essay"] in {record["url"] for record in metadata["essays"]}
+        assert page.select_one("#" + concept["id"]) is not None
+        assert any(term["@id"] == concept["url"] for term in defined_terms)
+
+    sitemap = ElementTree.parse(output / "sitemap.xml").getroot()
+    namespace = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
+    urls = [node.text for node in sitemap.findall(f"{namespace}url/{namespace}loc")]
+    assert len(urls) == 8
+    assert len(set(urls)) == 8
+    assert root + "concepts/" in urls
+    assert {record["url"] for record in metadata["essays"]} <= set(urls)
