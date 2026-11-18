@@ -23,6 +23,7 @@
   <script src="../reader.js" defer></script>
   {% if structured_data %}
   <link rel="alternate" type="application/atom+xml" title="Forward Science feed" href="../feed.xml">
+  <link rel="help" type="text/plain" title="Forward Science reading guide" href="../llms.txt">
   <script type="application/ld+json">{{ structured_data | tojson }}</script>
   {% endif %}
 </head>
