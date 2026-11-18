@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#faf9f6">
-  <meta name="description" content="Forward Science">
+  <meta name="description" content="{{ essay.summary }}">
   <meta name="author" content="Mateo H. Petel">
   {% if not essay.complete %}<meta name="robots" content="noindex,follow">{% endif %}
   <link rel="canonical" href="{{ (base_url ~ '/' ~ essay.slug ~ '/') if base_url and essay.complete else essay.original_url }}">
@@ -13,13 +13,18 @@
   <meta property="og:site_name" content="Forward Science">
   {% if base_url and essay.complete %}<meta property="og:url" content="{{ base_url }}/{{ essay.slug }}/">{% endif %}
   <meta property="og:title" content="{{ essay.title }}">
-  <meta property="og:description" content="{{ essay.subtitle }}">
+  <meta property="og:description" content="{{ essay.summary }}">
   <meta property="article:published_time" content="{{ essay.date }}">
   <meta name="twitter:card" content="summary">
+  <meta name="twitter:description" content="{{ essay.summary }}">
   <title>Forward Science</title>
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../styles.css">
   <script src="../reader.js" defer></script>
+  {% if structured_data %}
+  <link rel="alternate" type="application/atom+xml" title="Forward Science feed" href="../feed.xml">
+  <script type="application/ld+json">{{ structured_data | tojson }}</script>
+  {% endif %}
 </head>
 <body data-essay-slug="{{ essay.slug }}">
   <a class="skip-link" href="#main">Skip to content</a>
