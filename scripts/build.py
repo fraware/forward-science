@@ -255,8 +255,26 @@ def build(root: Path, output: Path, base_url: str | None,
         shutil.rmtree(obsolete_downloads)
     # Retract the former system-voice JavaScript when rebuilding an old site.
     (output / "device-narration.js").unlink(missing_ok=True)
+    # Discoverability metadata is published only for the complete, sourced
+    # edition. Noindex placeholders must not claim full-article authority.
+    discovery = None
+    home_schema = None
+    article_schemas = {}
+    if base_url and not incomplete:
+        import importlib.util
+        discovery_path = Path(__file__).with_name("discovery.py")
+        discovery_spec = importlib.util.spec_from_file_location(
+            "forward_science_discovery", discovery_path
+        )
+        if discovery_spec is None or discovery_spec.loader is None:
+            raise ValueError("Missing publication discovery generator")
+        discovery = importlib.util.module_from_spec(discovery_spec)
+        discovery_spec.loader.exec_module(discovery)
+        home_schema, article_schemas = discovery.schemas(essays, base_url)
     (output / "index.html").write_text(
-        env.get_template("index.html.j2").render(essays=essays, base_url=base_url), encoding="utf-8"
+        env.get_template("index.html.j2").render(
+            essays=essays, base_url=base_url, structured_data=home_schema
+        ), encoding="utf-8"
     )
     for i, essay in enumerate(essays):
         page = output / essay["slug"]
@@ -267,6 +285,7 @@ def build(root: Path, output: Path, base_url: str | None,
             previous=essays[i - 1] if i else None,
             next=essays[i + 1] if i + 1 < len(essays) else None,
             base_url=base_url,
+            structured_data=article_schemas.get(essay["slug"]),
         )
         (page / "index.html").write_text(html, encoding="utf-8")
     for filename in ("styles.css", "favicon.svg", "reader.js"):
@@ -285,15 +304,18 @@ def build(root: Path, output: Path, base_url: str | None,
         xml += "</urlset>\n"
         (output / "sitemap.xml").write_text(xml, encoding="utf-8")
         (output / "robots.txt").write_text("User-agent: *\nAllow: /\nSitemap: " + base_url + "/sitemap.xml\n", encoding="utf-8")
+        if discovery is None:
+            raise ValueError("Complete publication requires discovery generator")
+        discovery.write_assets(root, output, base_url, essays)
     else:
-        for filename in ("sitemap.xml", "robots.txt"):
+        for filename in ("sitemap.xml", "robots.txt", "feed.xml", "llms.txt"):
             (output / filename).unlink(missing_ok=True)
     if strict:
         # Only explicitly generated files belong in the public artifact.
         # Catch stray private exports or stale assets before Pages uploads it.
         allowed = {
             "index.html", "styles.css", "favicon.svg", "reader.js",
-            ".nojekyll", "sitemap.xml", "robots.txt",
+            ".nojekyll", "sitemap.xml", "robots.txt", "feed.xml", "llms.txt",
         }
         allowed.update(f"{essay['slug']}/index.html" for essay in essays)
         allowed.update(essay["audio"] for essay in essays if essay["audio"])
