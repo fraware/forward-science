@@ -75,7 +75,7 @@ def test_published_graphs_and_agent_index_are_source_grounded(tmp_path: Path) ->
         assert article["headline"] == essay["title"]
         assert article["datePublished"] == essay["date"]
         assert article["isBasedOn"]["url"] == essay["original_url"]
-        assert article["author"]["@id"] == root + "#author"
+        assert article["author"]["@id"] == "https://mateopetel.xyz/#person"
         assert "dateModified" not in article
         assert len(article["about"]) >= 3
         assert article["keywords"]
