@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#faf9f6">
+  <meta name="description" content="Explore Forward Science, forward-deployed scientists, scientific loops, and self-driving laboratories through concise definitions and links to six original essays.">
+  <meta name="author" content="Mateo H. Petel">
+  <link rel="canonical" href="{{ base_url }}/concepts/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Forward Science">
+  <meta property="og:url" content="{{ base_url }}/concepts/">
+  <meta property="og:title" content="Forward Science Concepts">
+  <meta property="og:description" content="Definitions and original essay references for forward-deployed scientists, the scientific loop, and laboratory autonomy.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Forward Science Concepts">
+  <meta name="twitter:description" content="A guide to the six concepts developed across the Forward Science essays.">
+  <title>Forward Science Concepts | Scientists and Scientific Loops</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="alternate" type="application/atom+xml" title="Forward Science feed" href="../feed.xml">
+  <link rel="alternate" type="application/json" title="Forward Science corpus metadata" href="../corpus.json">
+  <link rel="help" type="text/plain" title="Forward Science reading guide" href="../llms.txt">
+  <script type="application/ld+json">{{ structured_data | tojson }}</script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header"><div class="shell site-header__inner">
+    <a class="wordmark" href="../" aria-label="Forward Science homepage">Forward Science</a>
+    <nav class="header-nav" aria-label="Primary navigation">
+      <a href="../#essays">All essays</a><a href="./" aria-current="page">Concepts</a>
+    </nav>
+  </div></header>
+  <main id="main">
+    <section class="hero narrow concepts-hero" aria-labelledby="page-title">
+      <p class="eyebrow">A guide to the essays</p>
+      <h1 id="page-title">Concepts in Forward Science</h1>
+      <p class="hero__deck">Six connected ideas about the institutions, people, and research practices that bring AI into scientific discovery.</p>
+      <p class="concepts-introduction">These short definitions summarize arguments developed in the essays. Each entry links to its primary text; the complete argument and its qualifications belong to that text.</p>
+    </section>
+    <section class="concepts narrow" aria-label="Concept definitions">
+      <dl class="concept-list">
+      {% for concept in concepts %}
+        <div class="concept-item">
+          <dt id="{{ concept.id }}">{{ concept.term }}</dt>
+          <dd>
+            <p>{{ concept.definition }}</p>
+            <p class="concept-source">Primary essay: <a href="../{{ concept.essay_slug }}/">{{ (essays | selectattr('slug', 'equalto', concept.essay_slug) | first).title }}</a></p>
+          </dd>
+        </div>
+      {% endfor %}
+      </dl>
+    </section>
+    <section class="colophon narrow" aria-labelledby="about-title">
+      <h2 id="about-title">Sources</h2>
+      <div class="colophon__text">
+        <p>The guide summarizes the six Forward Science essays by <a href="https://mateopetel.xyz/" rel="author">Mateo H. Petel</a>, first published in June 2026 in <a href="https://mateopetel.substack.com/t/forward-science">Critical Systems</a>. It is an editorial navigation aid, not an independently verified scientific glossary.</p>
+        <p><a href="../#essays">Read the complete essay collection</a>.</p>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer shell"><span>© 2026 Mateo H. Petel</span><a href="../">Forward Science</a></footer>
+</body>
+</html>
