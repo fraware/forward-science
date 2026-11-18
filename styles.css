@@ -226,12 +226,6 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 
 /* Minimal reader tools. These remain unobtrusive and work without client-side state. */
 .reading-tools { padding-top: 24px; font: 13px/1.6 var(--sans); }
-.reader-toc { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
-.reader-toc summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
-.reader-toc summary span { margin-left: 6px; }
-.reader-toc ol { margin: 10px 0 4px; padding-left: 20px; }
-.reader-toc li { margin: 0 0 9px; }
-.reader-toc a { text-decoration-thickness: 1px; }
 .reading-progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 30; pointer-events: none; }
 .reading-progress span { display: block; height: 100%; width: 0; background: var(--accent); }
 .prose p[id] { scroll-margin-top: 32px; }
