@@ -68,7 +68,7 @@ def test_all_pages_at_four_viewports(server_url, browser):
                 "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
             )
             assert overflow <= 1, f"Horizontal overflow on {route} at {width}px: {overflow}"
-            if slug:
+            if slug in SLUGS:
                 assert page.locator("article.prose p[id]").count() >= 10
                 assert page.locator(".reader-toc nav a").count() >= 3
         context.close()
