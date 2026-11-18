@@ -41,9 +41,11 @@ def schemas(essays: list[dict], base_url: str) -> tuple[dict, dict[str, dict]]:
     )
     author = {
         "@type": "Person", "@id": author_id,
-        "name": "Mateo H. Petel", "url": "https://mateopetel.substack.com/",
-        "sameAs": ["https://profiles.stanford.edu/mateo-petel",
-                   "https://www.linkedin.com/in/mateo-petel/"],
+        "name": "Mateo H. Petel", "url": "https://mateopetel.xyz/",
+        "sameAs": ["https://mateopetel.substack.com/",
+                   "https://profiles.stanford.edu/mateo-petel",
+                   "https://www.linkedin.com/in/mateo-petel/",
+                   "https://github.com/fraware"],
     }
     website = {
         "@type": "WebSite", "@id": website_id, "url": root_url,
@@ -55,6 +57,7 @@ def schemas(essays: list[dict], base_url: str) -> tuple[dict, dict[str, dict]]:
         "url": root_url, "name": "Forward Science",
         "description": description, "inLanguage": "en",
         "creator": {"@id": author_id},
+        "sameAs": "https://mateopetel.substack.com/t/forward-science",
         "hasPart": [{"@id": f"{root_url}{essay['slug']}/#article"} for essay in essays],
     }
     collection = {
