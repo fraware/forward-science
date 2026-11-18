@@ -58,7 +58,7 @@ def test_all_pages_at_four_viewports(server_url, browser):
     for width, height in [(320, 720), (390, 844), (768, 1024), (1440, 900)]:
         context = browser.new_context(viewport={"width": width, "height": height})
         page = context.new_page()
-        for slug in ("", *SLUGS):
+        for slug in ("", "concepts", *SLUGS):
             route = f"/{slug}/" if slug else "/"
             response = page.goto(server_url + route, wait_until="load")
             assert response is not None and response.status == 200
@@ -68,7 +68,7 @@ def test_all_pages_at_four_viewports(server_url, browser):
                 "() => document.documentElement.scrollWidth - document.documentElement.clientWidth"
             )
             assert overflow <= 1, f"Horizontal overflow on {route} at {width}px: {overflow}"
-            if slug:
+            if slug in SLUGS:
                 assert page.locator("article.prose p[id]").count() >= 10
                 assert page.locator(".reader-toc nav a").count() >= 3
         context.close()
@@ -95,8 +95,8 @@ def test_classic_editorial_typography_at_mobile_and_desktop(server_url, browser)
           };
         }""")
         assert home["title"] == "Forward Science"
-        assert page.title() == "Forward Science"
-        assert page.locator('meta[name="description"]').get_attribute("content") == "Forward Science"
+        assert page.title() == "Forward Science | AI for Science and Forward-Deployed Scientists"
+        assert "forward-deployed scientists" in page.locator('meta[name="description"]').get_attribute("content").lower()
         assert home["wordmark"] == "Forward Science"
         assert "Baskerville" in home["headingFont"]
         assert "Palatino Linotype" in home["bodyFont"]
@@ -105,8 +105,8 @@ def test_classic_editorial_typography_at_mobile_and_desktop(server_url, browser)
         assert home["overflowing"] is False
 
         page.goto(server_url + "/scientific-loop/", wait_until="load")
-        assert page.title() == "Forward Science"
-        assert page.locator('meta[name="description"]').get_attribute("content") == "Forward Science"
+        assert page.title() == "The Scientific Loop | Forward Science"
+        assert "scientific loop" in page.locator('meta[name="description"]').get_attribute("content").lower()
         essay = page.evaluate("""() => {
           const heading = getComputedStyle(document.querySelector('.chapter-heading'));
           const prose = document.querySelector('article.prose');
