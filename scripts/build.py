@@ -27,6 +27,35 @@ SUBSTACK_SUBSCRIBE_FOOTER = (
 )
 
 
+# Search previews describe each existing essay; the verified source prose stays untouched.
+SEARCH_METADATA = {
+    "forward-science": (
+        "Forward Science: AI for Scientific Discovery",
+        "Forward Science examines how research institutions connect AI, computation, and automation to scientific evidence, judgment, and discovery.",
+    ),
+    "forward-deployed-scientists": (
+        "Forward-Deployed Scientists | Forward Science",
+        "What is a forward-deployed scientist? The essay defines the embedded scientist-builder connecting frontier AI, research practice, and validated discovery.",
+    ),
+    "scientific-loop": (
+        "The Scientific Loop | Forward Science",
+        "The scientific loop connects questions, experiments, measurement, validation, and the next action. Explore its role in deploying AI for science.",
+    ),
+    "extension-agents": (
+        "Scientific Intermediaries | Forward Science",
+        "From agricultural extension to research software engineering: the institutional lineage of forward-deployed scientists in AI-enabled research.",
+    ),
+    "political-economy": (
+        "Funding Forward-Deployed Scientists | Forward Science",
+        "Who finances deployed scientific expertise? Explore the funding, incentives, credit, and governance of scientific capacity in the AI era.",
+    ),
+    "future-laboratory": (
+        "Self-Driving Laboratories | Forward Science",
+        "From manual to self-driving laboratories, scientific autonomy depends on evidence, validation, research memory, and sound experimental judgment.",
+    ),
+}
+
+
 class TextOnly(HTMLParser):
     """Count meaningful text in imported sanitized HTML."""
 
@@ -69,6 +98,9 @@ def load_essays(root: Path) -> list[dict]:
         if e["slug"] in slugs:
             raise ValueError(f"Duplicate slug: {e['slug']}")
         slugs.add(e["slug"])
+        if e["slug"] not in SEARCH_METADATA:
+            raise ValueError(f"Missing search metadata: {e['slug']}")
+        e["seo_title"], e["seo_description"] = SEARCH_METADATA[e["slug"]]
         if not e["original_url"].startswith("https://mateopetel.substack.com/p/"):
             raise ValueError(f"Unexpected source URL for {e['slug']}")
         published = date.fromisoformat(e["date"])
@@ -253,12 +285,21 @@ def build(root: Path, output: Path, base_url: str | None,
     obsolete_downloads = output / "downloads"
     if obsolete_downloads.is_dir():
         shutil.rmtree(obsolete_downloads)
+    # A preview or local build without canonical URLs must withdraw the concept page.
+    concepts_directory = output / "concepts"
+    if concepts_directory.is_symlink():
+        raise ValueError("Output concepts path is a symlink")
+    if concepts_directory.is_dir():
+        shutil.rmtree(concepts_directory)
+    elif concepts_directory.exists():
+        raise ValueError("Output concepts path is not a directory")
     # Retract the former system-voice JavaScript when rebuilding an old site.
     (output / "device-narration.js").unlink(missing_ok=True)
     # Discoverability metadata is published only for the complete, sourced
     # edition. Noindex placeholders must not claim full-article authority.
     discovery = None
     home_schema = None
+    concepts_schema = None
     article_schemas = {}
     if base_url and not incomplete:
         import importlib.util
@@ -271,6 +312,7 @@ def build(root: Path, output: Path, base_url: str | None,
         discovery = importlib.util.module_from_spec(discovery_spec)
         discovery_spec.loader.exec_module(discovery)
         home_schema, article_schemas = discovery.schemas(essays, base_url)
+        concepts_schema = discovery.concept_schema(essays, base_url)
     (output / "index.html").write_text(
         env.get_template("index.html.j2").render(
             essays=essays, base_url=base_url, structured_data=home_schema
@@ -288,6 +330,16 @@ def build(root: Path, output: Path, base_url: str | None,
             structured_data=article_schemas.get(essay["slug"]),
         )
         (page / "index.html").write_text(html, encoding="utf-8")
+    if concepts_schema is not None:
+        concepts_directory.mkdir()
+        (concepts_directory / "index.html").write_text(
+            env.get_template("concepts.html.j2").render(
+                essays=essays,
+                concepts=discovery.CONCEPTS,
+                structured_data=concepts_schema,
+                base_url=base_url,
+            ), encoding="utf-8"
+        )
     for filename in ("styles.css", "favicon.svg", "reader.js"):
         shutil.copy2(root / filename, output / filename)
     for essay in essays:
@@ -298,7 +350,9 @@ def build(root: Path, output: Path, base_url: str | None,
     (output / ".nojekyll").touch()
     if base_url and not incomplete:
         from xml.sax.saxutils import escape
-        urls = [base_url + "/"] + [base_url + "/" + e["slug"] + "/" for e in essays]
+        urls = [base_url + "/", base_url + "/concepts/"] + [
+            base_url + "/" + e["slug"] + "/" for e in essays
+        ]
         xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         xml += "".join(f"  <url><loc>{escape(u)}</loc></url>\n" for u in urls)
         xml += "</urlset>\n"
@@ -308,7 +362,7 @@ def build(root: Path, output: Path, base_url: str | None,
             raise ValueError("Complete publication requires discovery generator")
         discovery.write_assets(root, output, base_url, essays)
     else:
-        for filename in ("sitemap.xml", "robots.txt", "feed.xml", "llms.txt"):
+        for filename in ("sitemap.xml", "robots.txt", "feed.xml", "llms.txt", "corpus.json"):
             (output / filename).unlink(missing_ok=True)
     if strict:
         # Only explicitly generated files belong in the public artifact.
@@ -316,6 +370,7 @@ def build(root: Path, output: Path, base_url: str | None,
         allowed = {
             "index.html", "styles.css", "favicon.svg", "reader.js",
             ".nojekyll", "sitemap.xml", "robots.txt", "feed.xml", "llms.txt",
+            "corpus.json", "concepts/index.html",
         }
         allowed.update(f"{essay['slug']}/index.html" for essay in essays)
         allowed.update(essay["audio"] for essay in essays if essay["audio"])
@@ -340,7 +395,7 @@ def main() -> int:
     except (ValueError, OSError) as exc:
         parser.exit(2, f"Build failed: {exc}\n")
     count = sum(e["complete"] for e in essays)
-    print(f"Generated {len(essays) + 1} pages in {args.out}; complete chapters: {count}/6")
+    print(f"Generated {len(essays) + 1 + int(bool(args.base_url) and count == 6)} pages in {args.out}; complete chapters: {count}/6")
     if count < 6:
         print("Reader placeholders are marked noindex. Import the official author export before public release.")
     return 0

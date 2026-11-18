@@ -248,3 +248,22 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 .listen-option__body { padding: 8px 0 19px; }
 .listen-option audio { display: block; max-width: 100%; width: 100%; }
 @media print { .listen-option { display: none; } }
+
+
+/* The editorial concept guide is distinct from the original essay texts. */
+.concepts-hero { padding-bottom: 48px; }
+.concepts-hero h1 { font-size: clamp(40px, 6vw, 68px); }
+.concepts-introduction { margin: 30px 0 0; max-width: 650px; font: 18px/1.65 var(--serif); color: var(--muted); }
+.concept-list { margin: 0; padding: 0; }
+.concept-item { padding: 36px 0 39px; border-top: 1px solid var(--line); }
+.concept-item:first-child { border-top-color: var(--ink); }
+.concept-item dt { scroll-margin-top: 30px; font: 400 clamp(28px, 3.2vw, 35px)/1.24 var(--display); letter-spacing: -.012em; }
+.concept-item dd { margin: 13px 0 0; font: 18px/1.65 var(--serif); color: #4e5148; }
+.concept-item dd > p { margin: 0; }
+.concept-item .concept-source { margin-top: 13px; font: 14px/1.65 var(--serif); color: var(--muted); }
+@media (max-width: 650px) {
+  .concepts-hero { padding-bottom: 38px; }
+  .concepts-introduction { font-size: 17px; }
+  .concept-item { padding: 28px 0 32px; }
+  .concept-item dd { font-size: 17px; }
+}
