@@ -70,7 +70,8 @@ def test_all_pages_at_four_viewports(server_url, browser):
             assert overflow <= 1, f"Horizontal overflow on {route} at {width}px: {overflow}"
             if slug in SLUGS:
                 assert page.locator("article.prose p[id]").count() >= 10
-                assert page.locator(".reader-toc nav a").count() >= 3
+                assert page.locator(".chapter-register--essay ol a").count() == 6
+                assert page.locator(".reader-toc").count() == 0
         context.close()
 
 
@@ -118,7 +119,8 @@ def test_classic_editorial_typography_at_mobile_and_desktop(server_url, browser)
             lineHeight: parseFloat(typography.lineHeight),
             measure: prose.getBoundingClientRect().width,
             overflowing: document.documentElement.scrollWidth > window.innerWidth + 1,
-            controls: document.querySelectorAll('.reader-toc summary').length,
+            obsoleteToc: document.querySelectorAll('.reader-toc').length,
+            seriesLinks: document.querySelectorAll('.chapter-register--essay ol a').length,
           };
         }""")
         assert essay["align"] == "left"
@@ -127,7 +129,8 @@ def test_classic_editorial_typography_at_mobile_and_desktop(server_url, browser)
         assert 1.55 <= essay["lineHeight"] / essay["fontSize"] <= 1.8
         assert essay["measure"] <= 677
         assert essay["overflowing"] is False
-        assert essay["controls"] == 1
+        assert essay["obsoleteToc"] == 0
+        assert essay["seriesLinks"] == 6
         context.close()
 
 
@@ -171,12 +174,12 @@ def test_real_navigation_and_paragraph_links(server_url, browser):
     assert page.locator("ol.essay-list > li").count() == 6
     page.locator(".essay-list h3 a").first.click()
     assert page.url.endswith("/forward-science/")
-    page.locator(".reader-toc summary").click()
-    anchor = page.locator(".reader-toc nav a").nth(2)
-    target = anchor.get_attribute("href")
-    anchor.click()
-    assert page.evaluate("location.hash") == target
-    assert page.locator(target).count() == 1
+    # Paragraph anchors remain linkable despite removal of the optional TOC.
+    target_id = page.locator("article.prose p[id]").nth(2).get_attribute("id")
+    assert target_id is not None
+    page.goto(server_url + f"/forward-science/#{target_id}")
+    assert page.evaluate("location.hash") == f"#{target_id}"
+    assert page.locator(f"article.prose p#{target_id}").count() == 1
     page.locator(".chapter-navigation__next").click()
     assert page.url.endswith("/forward-deployed-scientists/")
     context.close()
@@ -203,7 +206,8 @@ def test_public_pages_have_no_narration_history_or_per_essay_actions(server_url,
         page.locator(".essay-list h3 a").first.click()
         assert page.url.endswith("/forward-science/")
         assert page.locator("#listen, audio, .audio-edition, .resume-reading").count() == 0
-        assert page.locator(".reader-toc summary").count() == 1
+        assert page.locator(".reader-toc").count() == 0
+        assert page.locator(".chapter-register--essay ol a").count() == 6
         assert page.locator("article.prose p[id]").count() >= 10
         # Defer scripts may still be executing just after navigation.
         page.wait_for_function(
@@ -260,7 +264,12 @@ def test_optional_audio_player_is_closed_and_stops_when_collapsed(server_url, br
       details.innerHTML = '<summary>Listen to this essay</summary>' +
           '<div class="listen-option__body">' +
           '<audio controls preload="none" data-essay-audio></audio></div>';
-      document.querySelector('.reading-tools').appendChild(details);
+      // This essay has no audio edition. Supply a test-only container; production
+      // HTML and its audio availability remain unchanged.
+      const tools = document.createElement('section');
+      tools.className = 'reading-tools narrow';
+      document.querySelector('article.prose').before(tools);
+      tools.appendChild(details);
       const audio = details.querySelector('audio');
       window.__pauseCalls = 0;
       window.__playCalls = 0;
@@ -299,7 +308,8 @@ def test_no_javascript_still_has_text_and_navigation(server_url, browser):
     page = context.new_page()
     page.goto(server_url + "/extension-agents/")
     assert page.locator("article.prose p").count() >= 10
-    assert page.locator(".reader-toc nav a").count() >= 3
+    assert page.locator(".chapter-register--essay ol a").count() == 6
+    assert page.locator(".reader-toc").count() == 0
     page.locator(".chapter-navigation__next").click()
     assert page.url.endswith("/political-economy/")
     context.close()
